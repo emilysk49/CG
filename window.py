@@ -13,37 +13,41 @@ class Window():
         self.main_window["bg"]= "gray"
 
         #relief opcoes: solid, flat, raised, sunken
+        #Frame das opcoes escontradas na esquerda da tela
         self.dFile_frame = Frame(self.main_window, borderwidth=1, relief="raised", bg="gray")
         self.dFile_frame.place(x=10, y=10, width=200, height=670)
 
-        #viewport
+        #canvas referente a viewport
         self.canvas = Canvas(self.main_window, width=570, height=570, bg="floral white")
         self.canvas.place(x=230, y=10)
         
-        #setando valores de window (da tela onde vai ter desenhos - viewport)
-        self.xwMin = -10
-        self.xwMax = 10
-        self.ywMin = -10
-        self.ywMax = 10
+        #valores iniciais/escala da window, indo de x=-10 até 10, idem ao y
+        self.xwMin = -11
+        self.xwMax = 11
+        self.ywMin = -11
+        self.ywMax = 11
 
-        #tamanho da tela do viewport
+        #tamanho da tela do viewport (canvas)
         self.xvMin = 0
         self.xvMax = 570
         self.yvMin = 0
         self.yvMax = 570
 
-        #ainda nao tem implementacao e apenas frame
+        #ainda nao tem implementacao e apenas frame para logs
         self.log_frame = Frame(self.main_window, borderwidth=1, relief="raised", bg="gray")
         self.log_frame.place(x=230, y=600, width=570, height=80)
 
-        #frame que terá objetos ja construidos
+        #frame necessario para o scroll
         self.scroll_frame = Frame(self.dFile_frame, bg="black")
         self.scroll_frame.place(x=170, y=20, height=120)
+        #Label de texto onde encontramos os objetos
         self.objetos_text = Label(self.dFile_frame, text="Objetos", bg="gray")
         self.objetos_text.config(font =("Courier", 14), foreground="white")
         self.objetos_text.pack()
         self.scrollbar = Scrollbar(self.scroll_frame, orient=VERTICAL)
+        #listbox contendo os objetos criados
         self.object_list = Listbox(self.dFile_frame, width=17, height=7, bg="gray40", yscrollcommand=self.scrollbar.set)
+        #dicionario para que tenhamos uma referencia aos objetos
         self.obj_dict = {}
         self.scrollbar.config(command=self.object_list.yview)
         self.scrollbar.pack(side=RIGHT, fill=Y)
@@ -52,11 +56,11 @@ class Window():
         #botao para apagar objeto existente
         self.apagarB = Button(self.dFile_frame, text="Delete", command=lambda:self.apagar_objeto())
         self.apagarB.place(x=90, y=155)
-        #botai para adicionar objeto novo -> vai para criacao de pop up
+        #botao para adicionar objeto novo -> abre um popup
         self.objectB = Button(self.dFile_frame, text="Add", command=lambda:self.criar_objeto())
         self.objectB.place(x=10, y=155)
 
-        #frame onde tera algumas funcoes para mexer 
+        #frame das ferramentas de movimento da window
         self.tool_frame = Frame(self.dFile_frame, relief="raised", borderwidth=1, bg="gray")
         self.tool_frame.place(x=10, y=200, width=170, height=450)
 
@@ -77,8 +81,13 @@ class Window():
         self.zoomoutB.place(x=100, y=120)
 
         #duas linhas eixo x e y para criar plano cartesiano
-        self.linha1 = self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
-        self.linha2 = self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
+        self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
+        self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
+        #posicoes 10 em x e y e -10 para referencia
+        self.canvas.create_text(self.xvp(10),self.yvp(1), text="10")
+        self.canvas.create_text(self.xvp(1),self.yvp(10), text="10")
+        self.canvas.create_text(self.xvp(-1),self.yvp(-10), text="-10")
+        self.canvas.create_text(self.xvp(-10),self.yvp(-1), text="-10")
 
     #transformada de viewport x
     def xvp(self, xw):
@@ -88,30 +97,31 @@ class Window():
     def yvp(self, yw):
         return ( (1-((yw-self.ywMin)/(self.ywMax-self.ywMin)))*(self.yvMax-self.yvMin) )
     
-    #para esquerda <- diminui os x
+    #para esquerda <- diminui os x's
     def left(self):
         self.xwMin -= 1 
         self.xwMax -= 1
         self.redesenhar()
 
-    #para direita -> aumenta os x
+    #para direita -> aumenta os x's
     def right(self):
         self.xwMax += 1
         self.xwMin += 1
         self.redesenhar()
 
-    #para cima ↑ aumenta os y
+    #para cima ↑ aumenta os y's
     def up(self):
         self.ywMax += 1
         self.ywMin += 1
         self.redesenhar()
 
-    #para baixo ↓ diminui os y
+    #para baixo ↓ diminui os y's
     def down(self):
         self.ywMax -= 1
         self.ywMin -= 1
         self.redesenhar()
 
+    #zoomin -> aproxima os pontos da window
     def zoomIn(self):
         #Verificacao para nao inverter a tela com muito zoomIn (rever para possiveis diferentes niveis de zoom)
         if not (((self.xwMax-1) <= (self.xwMin+1)) or ((self.yvMax-1) <= (self.yvMin+1))): 
@@ -120,13 +130,15 @@ class Window():
             self.ywMax -= 1
             self.ywMin += 1
         self.redesenhar()
-        
+    
+    #zoomout -> afasta os pontos da window
     def zoomOut(self):
         self.xwMax += 1
         self.xwMin -= 1
         self.ywMax += 1
         self.ywMin -= 1
         self.redesenhar()
+
 
     def redesenhar(self):
         self.canvas.delete("all") #primeiro apaga tudo
@@ -147,8 +159,13 @@ class Window():
                     self.canvas.create_line(self.xvp(tup[i][0]), self.yvp(tup[i][1]), self.xvp(tup[i-1][0]), self.yvp(tup[i-1][1]), fill="purple3", width=3)
     
         #duas linhas eixo x e y para criar plano cartesiano
-        self.linha1 = self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
-        self.linha2 = self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
+        self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
+        self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
+        #posicoes 10 em x e y e -10 para referencia
+        self.canvas.create_text(self.xvp(10),self.yvp(1), text="10")
+        self.canvas.create_text(self.xvp(1),self.yvp(10), text="10")
+        self.canvas.create_text(self.xvp(-1),self.yvp(-10), text="-10")
+        self.canvas.create_text(self.xvp(-10),self.yvp(-1), text="-10")
 
     def criar_ponto(self):
         try:
@@ -156,8 +173,8 @@ class Window():
             if not (nome in self.obj_dict.keys()): #verifica se nao tem o objeto com mesmo nome 
                 x = float(self.entrada_x.get()) #cuida que x e y nao recebeu entrada de string
                 y = float(self.entrada_y.get())
-                self.object_list.insert(END, nome)
-                self.obj_dict[nome] = Point(nome, [(x,y)])
+                self.object_list.insert(END, nome) #insere o nome do objeto na listbox
+                self.obj_dict[nome] = Point(nome, [(x,y)]) #adiciona o ponto no dicionario de objetos, chave = nome
                 self.redesenhar()
                 self.msg_label.config(text="Ponto adicionado!", foreground="SpringGreen2")
             else:
@@ -169,14 +186,14 @@ class Window():
         try:
             nome = self.nome_obj2.get()
             if not (nome in self.obj_dict.keys()): #verifica se nao tem o objeto com mesmo nome
-                x1 = float(self.entrada_x1.get()) #cuida que x e y nao recebeu entrada de string
+                x1 = float(self.entrada_x1.get()) #cuida se x e y nao recebeu entrada de string
                 y1 = float(self.entrada_y1.get())
 
                 x2 = float(self.entrada_x2.get())
                 y2 = float(self.entrada_y2.get())
 
-                self.object_list.insert(END, nome)
-                self.obj_dict[nome] = Line(nome, [(x1,y1),(x2,y2)])
+                self.object_list.insert(END, nome) #insere o nome do objeto na listbox
+                self.obj_dict[nome] = Line(nome, [(x1,y1),(x2,y2)]) #adiciona a linha no dicionario de objetos, chave = nome
                 self.redesenhar()
                 self.msg_label2.config(text="Linha adicionada!", foreground="SpringGreen2")
             else:
@@ -199,7 +216,9 @@ class Window():
         nome = self.nome_obj3.get()
         if not (nome in self.obj_dict.keys()): #verifica se nao tem o objeto com mesmo nome
             self.object_list.insert(END, nome)
-            self.obj_dict[nome] = Polygon(nome, self.pontos_pol)
+            pontos = self.pontos_pol[:]
+            self.obj_dict[nome] = Polygon(nome, pontos)
+            self.pontos_pol = []
             self.redesenhar()
             self.msg_label3.config(text="Polígono criado!", foreground="SpringGreen2")
         else:

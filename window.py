@@ -1,9 +1,11 @@
 from tkinter import *
+from tkinter import ttk
 from point import Point
 from line import Line
 from polygon import Polygon
+import numpy as np
+import string
 
-#Verificar entradas se são int
 
 class Window():
     def __init__(self):
@@ -46,23 +48,29 @@ class Window():
         self.objetos_text.pack()
         self.scrollbar = Scrollbar(self.scroll_frame, orient=VERTICAL)
         #listbox contendo os objetos criados
-        self.object_list = Listbox(self.dFile_frame, width=17, height=7, bg="gray40", yscrollcommand=self.scrollbar.set)
+        self.object_list = Listbox(self.dFile_frame, bg="gray40", yscrollcommand=self.scrollbar.set) 
         #dicionario para que tenhamos uma referencia aos objetos
         self.obj_dict = {}
         self.scrollbar.config(command=self.object_list.yview)
         self.scrollbar.pack(side=RIGHT, fill=Y)
-        self.object_list.place(x=10, y=20)
+        self.object_list.place(x=10, y=20, width=155 , height=125)
 
         #botao para apagar objeto existente
         self.apagarB = Button(self.dFile_frame, text="Delete", command=lambda:self.apagar_objeto())
-        self.apagarB.place(x=90, y=155)
+        self.apagarB.place(x=70, y=155, width=60)
         #botao para adicionar objeto novo -> abre um popup
         self.objectB = Button(self.dFile_frame, text="Add", command=lambda:self.criar_objeto())
-        self.objectB.place(x=10, y=155)
+        self.objectB.place(x=10, y=155, width=60)
+        #botao para selecionar cor
+        self.colorB = Button(self.dFile_frame, text="Cor", width=2 , command=lambda:self.cor_popup())
+        self.colorB.place(x=130, y=155)
+        #botao para transformacao
+        self.transformarB = Button(self.dFile_frame, text="Transformação", command=lambda:self.transformacao())
+        self.transformarB.place(x=30, y=190)
 
         #frame das ferramentas de movimento da window
         self.tool_frame = Frame(self.dFile_frame, relief="raised", borderwidth=1, bg="gray")
-        self.tool_frame.place(x=10, y=200, width=170, height=450)
+        self.tool_frame.place(x=10, y=230, width=170, height=420)
 
         #botoes para navegacao
         self.upB = Button(self.tool_frame, text="UP", width=5, command=lambda:self.up())
@@ -84,10 +92,10 @@ class Window():
         self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
         self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
         #posicoes 10 em x e y e -10 para referencia
-        self.canvas.create_text(self.xvp(10),self.yvp(1), text="10")
-        self.canvas.create_text(self.xvp(1),self.yvp(10), text="10")
-        self.canvas.create_text(self.xvp(-1),self.yvp(-10), text="-10")
-        self.canvas.create_text(self.xvp(-10),self.yvp(-1), text="-10")
+        self.canvas.create_text(self.xvp(10),self.yvp(1), text="10", fill="black")
+        self.canvas.create_text(self.xvp(1),self.yvp(10), text="10", fill="black")
+        self.canvas.create_text(self.xvp(-1),self.yvp(-10), text="-10", fill="black")
+        self.canvas.create_text(self.xvp(-10),self.yvp(-1), text="-10", fill="black")
 
     #transformada de viewport x
     def xvp(self, xw):
@@ -140,6 +148,7 @@ class Window():
         self.redesenhar()
 
 
+
     def redesenhar(self):
         self.canvas.delete("all") #primeiro apaga tudo
 
@@ -149,14 +158,14 @@ class Window():
             tup = obj.coordenadas
             
             if obj.tipo == 1: #se ponto
-                self.canvas.create_oval(self.xvp(tup[0][0])-3, self.yvp(tup[0][1])-3, self.xvp(tup[0][0])+3, self.yvp(tup[0][1])+3, fill="red")
+                self.canvas.create_oval(self.xvp(tup[0][0])-3, self.yvp(tup[0][1])-3, self.xvp(tup[0][0])+3, self.yvp(tup[0][1])+3, fill=obj.cor)
 
             elif obj.tipo == 2: #se linha
-                self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill="blue", width=3)
+                self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
             
             elif obj.tipo == 3: #se poligono
                 for i in range (len(tup)):
-                    self.canvas.create_line(self.xvp(tup[i][0]), self.yvp(tup[i][1]), self.xvp(tup[i-1][0]), self.yvp(tup[i-1][1]), fill="purple3", width=3)
+                    self.canvas.create_line(self.xvp(tup[i][0]), self.yvp(tup[i][1]), self.xvp(tup[i-1][0]), self.yvp(tup[i-1][1]), fill=obj.cor, width=3)
     
         #duas linhas eixo x e y para criar plano cartesiano
         self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
@@ -216,7 +225,7 @@ class Window():
         nome = self.nome_obj3.get()
         if not (nome in self.obj_dict.keys()): #verifica se nao tem o objeto com mesmo nome
             self.object_list.insert(END, nome)
-            pontos = self.pontos_pol[:]
+            pontos = self.pontos_pol[:] #copia a lista
             self.obj_dict[nome] = Polygon(nome, pontos)
             self.pontos_pol = []
             self.redesenhar()
@@ -309,6 +318,295 @@ class Window():
         self.pop_padrao.place(x=100, y=0) 
         Label(self.pop_padrao, text="Selecione objeto que \n quer desenhar!", bg="gray").place(x=30, y=120)
 
+
+    def transformacao(self):
+        if len(self.object_list.curselection()) == 1:
+            self.pop = Toplevel(self.main_window)
+            self.pop.geometry("550x400+450+200")
+            self.pop.title("Transformações 2D")
+            self.pop.config(bg="gray")
+
+            self.obj_trans = self.object_list.get(self.object_list.curselection())
+
+            self.nb = ttk.Notebook(self.pop)
+            self.nb.place(x=20, y=20, width=350, height=350)
+
+            self.historico_frame = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=150, height=350)
+            self.historico_frame.place(x=380, y=20)
+            self.scroll2_frame = Frame(self.historico_frame, bg="black")
+            self.scroll2_frame.place(x=125, y=10, height=300)
+            self.scrollbar2 = Scrollbar(self.scroll2_frame, orient=VERTICAL)
+            self.historico = Listbox(self.historico_frame, bg="gray40", yscrollcommand=self.scrollbar2.set) #, yscrollcommand=self.scrollbar2.set
+            self.scrollbar2.config(command=self.historico.yview)
+            self.scrollbar2.pack(side=RIGHT, fill=Y)
+            self.historico.place(x=10, y=10, width=100 , height=300)
+            
+            self.tb1=Frame(self.nb, relief="raised")
+            self.tb2=Frame(self.nb)
+            self.tb3=Frame(self.nb)
+            self.nb.add(self.tb1,text="Translação")
+            self.nb.add(self.tb2,text="Escalonamento")
+            self.nb.add(self.tb3,text="Rotação")
+
+        
+            Button(self.historico_frame, text="Adicionar", width=5, command=lambda:self.transformar(self.nb.tab(self.nb.select(), "text"))).place(x=3, y=315)
+            Button(self.historico_frame, text="OK", command=lambda:self.fim_trans()).place(x=90, y=315)
+
+            ################### Tab1 (Translação) ###################
+            self.ftb1 = Frame(self.tb1, borderwidth=1, relief="raised", bg="gray")
+            self.ftb1.place(x=7, y=5, width=330, height=300)
+
+            Label(self.ftb1, bg="gray", text="Transladar por:").place(x=5, y=5)
+
+            Label(self.ftb1, bg="gray", text="DX:").place(x=10, y=50)
+            self.entrada_dx = Entry(self.ftb1, width=5)
+            self.entrada_dx.place(x=35, y=50)
+            
+            Label(self.ftb1, bg="gray", text="DY:").place(x=150, y=50)
+            self.entrada_dy = Entry(self.ftb1, width=5)
+            self.entrada_dy.place(x=175, y=50)
+
+            self.trans_msg = Label(self.ftb1, text="", bg="gray")
+            self.trans_msg.place(x=10, y=100)
+
+
+            ################### Tab2 (Escalonamento) ###################
+            self.ftb2 = Frame(self.tb2, borderwidth=1, relief="raised", bg="gray")
+            self.ftb2.place(x=7, y=5, width=330, height=300)
+
+            Label(self.ftb2, bg="gray", text="Escalonar por:").place(x=5, y=5)
+
+            Label(self.tb2, bg="gray", text="SX:").place(x=10, y=50)
+            self.entrada_sx = Entry(self.tb2, width=5)
+            self.entrada_sx.place(x=35, y=50)
+            
+            Label(self.tb2, bg="gray", text="SY:").place(x=150, y=50)
+            self.entrada_sy = Entry(self.tb2, width=5)
+            self.entrada_sy.place(x=175, y=50)
+
+            self.scale_msg = Label(self.ftb2, text="", bg="gray")
+            self.scale_msg.place(x=10, y=100)
+
+
+            ################### Tab3 (Rotação) ###################
+            self.ftb3 = Frame(self.tb3, borderwidth=1, relief="raised", bg="gray")
+            self.ftb3.place(x=7, y=5, width=330, height=300)
+
+            self.select = Frame(self.ftb3, borderwidth=1, relief="raised", bg="gray")
+            self.select.place(x=10, y=5, width=310, height=130)
+
+            Label(self.select, bg="gray", text="Opções:").place(x=5, y=5)
+
+            self.option = StringVar()
+
+            
+            Label(self.ftb3, bg="gray", text="Ângulo:").place(x=20, y=150)
+            self.entrada_grau = Entry(self.ftb3, width=5)
+            self.entrada_grau.place(x=72, y=150)
+            Label(self.ftb3, bg="gray", text="°").place(x=130, y=150)
+
+
+            self.fr_point = Frame(self.ftb3, borderwidth=1, relief="raised", bg="gray")
+            self.fr_point.place(x=10, y=180, width=310, height=100)
+
+            self.fr_general = Frame(self.ftb3, bg="gray")
+            self.fr_general.place(x=10, y=180, width=310 , height=100)
+
+            self.general_msg = Label(self.fr_general, text="", bg="gray")
+            self.general_msg.place(x=10, y=10)
+            
+            Label(self.fr_point, bg="gray", text="X:").place(x=10, y=10)
+            self.entrada_xp = Entry(self.fr_point, width=5)
+            self.entrada_xp.place(x=35, y=10)
+
+            self.point_msg = Label(self.fr_point, text="", bg="gray")
+            self.point_msg.place(x=10, y=50)
+            
+            Label(self.fr_point, bg="gray", text="Y:").place(x=150, y=10)
+            self.entrada_yp = Entry(self.fr_point, width=5)
+            self.entrada_yp.place(x=175, y=10)
+
+    
+            rb = Radiobutton(self.select, text="Rotacionar sobre origem", value="o", variable=self.option, bg="gray", command=lambda:self.levantar_frame(self.fr_general))
+            rb.place(x=5,y=35)
+            rb2 = Radiobutton(self.select, text="Rotacionar sobre ponto", value="p", variable=self.option, bg="gray",  command=lambda:self.levantar_frame(self.fr_point))
+            rb2.place(x=5,y=65)
+            rb3 = Radiobutton(self.select, text="Rotacionar sobre centro do objeto", value="s", variable=self.option, bg="gray",  command=lambda:self.levantar_frame(self.fr_general))
+            rb3.place(x=5,y=95)
+         
+
+    def transformar(self, tab):
+        if tab == "Translação":
+            try:
+                dx = float(self.entrada_dx.get())
+                dy = float(self.entrada_dy.get())
+                #objName = self.historico.get(self.historico.curselection())
+                #self.obj_dict[objName].transladar(dx,dy)   outra ideia, só vamos guardar as transformaçoes e no fim calc as matrizes
+                self.historico.insert(END, f"t {dx} {dy}")
+                self.trans_msg.config(text="Translação adicionada ao histórico", foreground="SpringGreen2")
+            except:
+                self.trans_msg.config(text="Números Inválidos", foreground="Red")
+                
+        elif tab == "Escalonamento":
+            try:
+                sx = float(self.entrada_sx.get())
+                sy = float(self.entrada_sy.get())
+                #objName = self.historico.get(self.historico.curselection())
+                #self.obj_dict[objName].escalonar(sx,sy) 
+                self.historico.insert(END, f"e {sx} {sy}")
+                self.scale_msg.config(text="Escalonamento adicionado ao histórico", foreground="SpringGreen2")
+            except:
+                self.scale_msg.config(text="Números Inválidos", foreground="Red")
+
+        elif tab == "Rotação":
+            try:
+                var = self.option.get()
+                if var == "p": #ponto
+                    x = float(self.entrada_xp.get())
+                    y = float(self.entrada_yp.get())
+                    #objName = self.historico.get(self.historico.curselection())
+                    angulo = float(self.entrada_grau.get())
+                    #self.obj_dict[objName].rotacionar(angulo, x, y)
+                    self.historico.insert(END, f"rp {x} {y} {angulo}")
+                    self.point_msg.config(text="Rotação adicionado ao histórico", foreground="SpringGreen2")
+
+                elif var == "o": #origem
+                    #objName = self.historico.get(self.historico.curselection())
+                    angulo = float(self.entrada_grau.get())
+                    #self.obj_dict[objName].rotacionar(angulo, 0, 0)
+                    self.historico.insert(END, f"ro {angulo}")
+                    self.general_msg.config(text="Rotação adicionado ao histórico", foreground="SpringGreen2")
+
+                elif var == "s": #si mesmo
+                    #objName = self.historico.get(self.historico.curselection())
+                    angulo = float(self.entrada_grau.get())
+                    #self.obj_dict[objName].rotacionar(angulo, self.obj_dict[objName].centroX, self.obj_dict[objName].centroY)
+                    self.historico.insert(END, f"rs {angulo}")
+                    self.general_msg.config(text="Rotação adicionado ao histórico", foreground="SpringGreen2")
+
+                else:
+                    self.general_msg.config(text="Selecione uma opção de rotação", foreground= "Red")
+            except:
+                self.general_msg.config(text="Valores Inválidos", foreground="Red")
+                self.point_msg.config(text="Valores Inválidos", foreground="Red")
+        else: 
+            print("Erro a tab veio de forma errada")
+    
+
+    def calcular_mat(self):
+        historico = self.historico.get(0,END)
+        print(historico)
+        ant = np.matrix([[1,0,0], [0,1,0], [0,0,1]])    #matriz identidade (valor simbolico de 1 na mult)
+        #objName = self.object_list.get(self.object_list.curselection())
+        objName = self.obj_trans
+        
+        for items in historico:
+            lista = items.split()
+            match lista[0]:
+                case "t": #Translacao
+                    dx = float(lista[1])
+                    dy = float(lista[2])
+                    mat = self.transladar(dx,dy)
+                    ant = np.matmul(ant,mat)
+    
+                case "e": #Escalonamento
+                    sx = float(lista[1])
+                    sy = float(lista[2])
+
+                    self.obj_dict[self.obj_trans].moverXY(ant)
+                    ant = np.matrix([[1,0,0], [0,1,0], [0,0,1]])
+
+                    centrox = self.obj_dict[objName].centroX
+                    centroy = self.obj_dict[objName].centroY
+
+                    mat1 = self.transladar(-centrox, -centroy)
+                    ant = np.matmul(ant,mat1)
+                    mat2 = self.escalonar(sx,sy)
+                    ant = np.matmul(ant,mat2)
+                    mat3 = self.transladar(centrox, centroy)
+                    ant = np.matmul(ant,mat3)
+
+                case "ro": #Rotacao na origem
+                    ang = float(lista[1])
+                    mat = self.rotacionar(ang)
+                    ant = np.matmul(ant,mat)
+
+                case "rs": #Rotação pelo centro do obj
+
+                    self.obj_dict[self.obj_trans].moverXY(ant)
+                    ant = np.matrix([[1,0,0], [0,1,0], [0,0,1]])
+                    
+                    centrox = self.obj_dict[objName].centroX
+                    centroy = self.obj_dict[objName].centroY
+
+                    ang = float(lista[1])
+                    mat1 = self.transladar(-(centrox), -(centroy))
+                    ant = np.matmul(ant,mat1)
+                    mat2 = self.rotacionar(ang)
+                    ant = np.matmul(ant,mat2)
+                    mat3 = self.transladar(centrox, centroy)
+                    ant = np.matmul(ant,mat3)
+
+                case "rp": #Rotação por um ponto
+                    px = float(lista[1])
+                    py = float(lista[2])
+                    ang = float(lista[3])
+                    mat1 = self.transladar(-px, -py)
+                    ant = np.matmul(ant,mat1)
+                    mat2 = self.rotacionar(ang)
+                    ant = np.matmul(ant,mat2)
+                    mat3 = self.transladar(px, py)
+                    ant = np.matmul(ant,mat3)
+        return ant
+
+    def transladar(self, dx, dy):
+        return np.matrix([[1,0,0], [0,1,0], [dx,dy,1]])
+
+    def escalonar(self, sx, sy):
+        return np.matrix([[sx,0,0], [0,sy,0], [0,0,1]])
+
+    #np.sin(np.deg2rad(90))
+    def rotacionar(self, ang):
+        return np.matrix([[np.cos(np.deg2rad(ang)), np.sin(np.deg2rad(ang)),  0], [-np.sin(np.deg2rad(ang)), np.cos(np.deg2rad(ang)), 0], [0,0,1]])
+
+    def fim_trans(self):
+        self.mat = self.calcular_mat()
+        self.historico.delete(0, END)
+        self.obj_dict[self.obj_trans].moverXY(self.mat)
+        self.redesenhar()
+
+    def cor_popup(self):
+        if len(self.object_list.curselection()) == 1: #Se um objeto selecionado
+            self.obj_act = self.object_list.get(self.object_list.curselection())
+            self.pop = Toplevel(self.main_window)
+            self.pop.geometry("400x100+450+200")
+            self.pop.title("Cor RGB")
+            self.pop.config(bg="gray")
+
+            Label(self.pop, text="Digite cor que gostaria em HEXADECIMAL", bg="gray").place(x=20, y=10)
+            Label(self.pop, text="#", bg="gray").place(x=20,y=40)
+            rgb = Entry(self.pop, width=20)
+            rgb.place(x=40,y=40)
+            
+            self.msg_rgb = Label(self.pop, text="", bg="gray")
+            self.msg_rgb.place(x=40,y=65)
+
+            Button(self.pop, text="Confirmar", command=lambda:self.apply_color(str(rgb.get()))).place(x=250,y=40)
+            
+
+    def apply_color(self, rgb):
+        rgbmin = rgb.lower()
+        if len(rgbmin) != 6:
+            self.msg_rgb.configure(text="São 6 números para codificar o RGB!", foreground="red")
+            return
+        for i in rgbmin: 
+            if i not in string.hexdigits: 
+                self.msg_rgb.configure(text="Insira números no formato HEXADECIMAL!", foreground="red")
+                return
+        self.obj_dict[self.obj_act].cor = "#"+ rgbmin
+        self.msg_rgb.configure(text="Cor alterada com sucesso", foreground="SpringGreen2")
+        self.redesenhar()
+        
 
 if __name__ == "__main__":
     app = Window()

@@ -65,7 +65,7 @@ class Window():
         self.colorB = Button(self.dFile_frame, text="Cor", width=2 , command=lambda:self.cor_popup())
         self.colorB.place(x=130, y=155)
         #botao para transformacao
-        self.transformarB = Button(self.dFile_frame, text="Transformação", command=lambda:self.transformacao())
+        self.transformarB = Button(self.dFile_frame, text="Transformação", command=lambda:self.transformacao()) #botão para selecionar transformações sobre um objeto
         self.transformarB.place(x=30, y=190)
 
         #frame das ferramentas de movimento da window
@@ -319,14 +319,14 @@ class Window():
         Label(self.pop_padrao, text="Selecione objeto que \n quer desenhar!", bg="gray").place(x=30, y=120)
 
 
-    def transformacao(self):
-        if len(self.object_list.curselection()) == 1:
-            self.pop = Toplevel(self.main_window)
+    def transformacao(self): #trata as transformações dos objetos
+        if len(self.object_list.curselection()) == 1: #Apenas um objeto selecionado
+            self.pop = Toplevel(self.main_window) #Nova janela
             self.pop.geometry("550x400+450+200")
             self.pop.title("Transformações 2D")
             self.pop.config(bg="gray")
 
-            self.obj_trans = self.object_list.get(self.object_list.curselection())
+            self.obj_trans = self.object_list.get(self.object_list.curselection()) #Nome do objeto selecionado na listbox
 
             self.nb = ttk.Notebook(self.pop)
             self.nb.place(x=20, y=20, width=350, height=350)
@@ -341,8 +341,8 @@ class Window():
             self.scrollbar2.pack(side=RIGHT, fill=Y)
             self.historico.place(x=10, y=10, width=100 , height=300)
             
-            self.tb1=Frame(self.nb, relief="raised")
-            self.tb2=Frame(self.nb)
+            self.tb1=Frame(self.nb, relief="raised")    # 3 janelas das tranformações
+            self.tb2=Frame(self.nb, relief="raised")
             self.tb3=Frame(self.nb)
             self.nb.add(self.tb1,text="Translação")
             self.nb.add(self.tb2,text="Escalonamento")
@@ -397,7 +397,7 @@ class Window():
 
             Label(self.select, bg="gray", text="Opções:").place(x=5, y=5)
 
-            self.option = StringVar()
+            self.option = StringVar()   #Tipo necessário para auxiliar a retirada da opção do Radiobutton
 
             
             Label(self.ftb3, bg="gray", text="Ângulo:").place(x=20, y=150)
@@ -426,7 +426,7 @@ class Window():
             self.entrada_yp = Entry(self.fr_point, width=5)
             self.entrada_yp.place(x=175, y=10)
 
-    
+            #Radiobutton são as partes de click para selecionar opção
             rb = Radiobutton(self.select, text="Rotacionar sobre origem", value="o", variable=self.option, bg="gray", command=lambda:self.levantar_frame(self.fr_general))
             rb.place(x=5,y=35)
             rb2 = Radiobutton(self.select, text="Rotacionar sobre ponto", value="p", variable=self.option, bg="gray",  command=lambda:self.levantar_frame(self.fr_point))
@@ -438,21 +438,17 @@ class Window():
     def transformar(self, tab):
         if tab == "Translação":
             try:
-                dx = float(self.entrada_dx.get())
-                dy = float(self.entrada_dy.get())
-                #objName = self.historico.get(self.historico.curselection())
-                #self.obj_dict[objName].transladar(dx,dy)   outra ideia, só vamos guardar as transformaçoes e no fim calc as matrizes
-                self.historico.insert(END, f"t {dx} {dy}")
+                dx = float(self.entrada_dx.get())   #translação em relação ao eixo X
+                dy = float(self.entrada_dy.get())   #translação em relação ao eixo Y
+                self.historico.insert(END, f"t {dx} {dy}")  #insersão na listbox de transformações
                 self.trans_msg.config(text="Translação adicionada ao histórico", foreground="SpringGreen2")
             except:
                 self.trans_msg.config(text="Números Inválidos", foreground="Red")
                 
         elif tab == "Escalonamento":
             try:
-                sx = float(self.entrada_sx.get())
-                sy = float(self.entrada_sy.get())
-                #objName = self.historico.get(self.historico.curselection())
-                #self.obj_dict[objName].escalonar(sx,sy) 
+                sx = float(self.entrada_sx.get())   #Escalonamento para o ponto no eixo X
+                sy = float(self.entrada_sy.get())   #Escalonamento para o ponto no eixo Y
                 self.historico.insert(END, f"e {sx} {sy}")
                 self.scale_msg.config(text="Escalonamento adicionado ao histórico", foreground="SpringGreen2")
             except:
@@ -461,26 +457,20 @@ class Window():
         elif tab == "Rotação":
             try:
                 var = self.option.get()
-                if var == "p": #ponto
+                if var == "p": #Rotação sobre um ponto
                     x = float(self.entrada_xp.get())
                     y = float(self.entrada_yp.get())
-                    #objName = self.historico.get(self.historico.curselection())
                     angulo = float(self.entrada_grau.get())
-                    #self.obj_dict[objName].rotacionar(angulo, x, y)
                     self.historico.insert(END, f"rp {x} {y} {angulo}")
                     self.point_msg.config(text="Rotação adicionado ao histórico", foreground="SpringGreen2")
 
-                elif var == "o": #origem
-                    #objName = self.historico.get(self.historico.curselection())
+                elif var == "o":    #Rotação sobre a origem
                     angulo = float(self.entrada_grau.get())
-                    #self.obj_dict[objName].rotacionar(angulo, 0, 0)
                     self.historico.insert(END, f"ro {angulo}")
                     self.general_msg.config(text="Rotação adicionado ao histórico", foreground="SpringGreen2")
 
-                elif var == "s": #si mesmo
-                    #objName = self.historico.get(self.historico.curselection())
+                elif var == "s":    #Rotação sobre si mesmo
                     angulo = float(self.entrada_grau.get())
-                    #self.obj_dict[objName].rotacionar(angulo, self.obj_dict[objName].centroX, self.obj_dict[objName].centroY)
                     self.historico.insert(END, f"rs {angulo}")
                     self.general_msg.config(text="Rotação adicionado ao histórico", foreground="SpringGreen2")
 
@@ -494,11 +484,9 @@ class Window():
     
 
     def calcular_mat(self):
-        historico = self.historico.get(0,END)
-        print(historico)
-        ant = np.matrix([[1,0,0], [0,1,0], [0,0,1]])    #matriz identidade (valor simbolico de 1 na mult)
-        #objName = self.object_list.get(self.object_list.curselection())
-        objName = self.obj_trans
+        historico = self.historico.get(0,END)   #Recebe a listbox com as transformações ordenadas
+        ant = np.matrix([[1,0,0], [0,1,0], [0,0,1]])    #Matriz identidade (valor simbolico de 1 na mult)
+        objName = self.obj_trans    #Nome do objeto
         
         for items in historico:
             lista = items.split()
@@ -507,28 +495,28 @@ class Window():
                     dx = float(lista[1])
                     dy = float(lista[2])
                     mat = self.transladar(dx,dy)
-                    ant = np.matmul(ant,mat)
+                    ant = np.matmul(ant,mat)    #Evolução da matriz de transformações
     
                 case "e": #Escalonamento
-                    sx = float(lista[1])
-                    sy = float(lista[2])
+                    sx = float(lista[1])    #Escalonamento por utilizar a relação do centro do objeto acaba aplicando a matriz de transformação
+                    sy = float(lista[2])    # antes, nela é recalculado o centro do objeto, para dai então ser aplicado o escalonamento
 
                     self.obj_dict[self.obj_trans].moverXY(ant)
                     ant = np.matrix([[1,0,0], [0,1,0], [0,0,1]])
 
-                    centrox = self.obj_dict[objName].centroX
-                    centroy = self.obj_dict[objName].centroY
+                    centrox = self.obj_dict[objName].centroX    #Novo centro do objeto X
+                    centroy = self.obj_dict[objName].centroY    #Novo centro do objeto Y
 
-                    mat1 = self.transladar(-centrox, -centroy)
+                    mat1 = self.transladar(-centrox, -centroy)  #Leva o centro do objeto para a origem das coordenadas
                     ant = np.matmul(ant,mat1)
-                    mat2 = self.escalonar(sx,sy)
+                    mat2 = self.escalonar(sx,sy)                #Escalona a matriz em relação a Sx e Sy
                     ant = np.matmul(ant,mat2)
-                    mat3 = self.transladar(centrox, centroy)
+                    mat3 = self.transladar(centrox, centroy)    #Devolve o centro do objeto até a posição original
                     ant = np.matmul(ant,mat3)
 
                 case "ro": #Rotacao na origem
                     ang = float(lista[1])
-                    mat = self.rotacionar(ang)
+                    mat = self.rotacionar(ang)                  #Simplesmente rotaciona em relação a origem
                     ant = np.matmul(ant,mat)
 
                 case "rs": #Rotação pelo centro do obj
@@ -540,44 +528,44 @@ class Window():
                     centroy = self.obj_dict[objName].centroY
 
                     ang = float(lista[1])
-                    mat1 = self.transladar(-(centrox), -(centroy))
+                    mat1 = self.transladar(-(centrox), -(centroy))  #Leva o centro do objeto para a origem das coordenadas
                     ant = np.matmul(ant,mat1)
-                    mat2 = self.rotacionar(ang)
+                    mat2 = self.rotacionar(ang)                     #Rotaciona a matriz pelo ângulo dado
                     ant = np.matmul(ant,mat2)
-                    mat3 = self.transladar(centrox, centroy)
+                    mat3 = self.transladar(centrox, centroy)        #Devolve o centro do objeto até a posição original
                     ant = np.matmul(ant,mat3)
 
                 case "rp": #Rotação por um ponto
                     px = float(lista[1])
                     py = float(lista[2])
                     ang = float(lista[3])
-                    mat1 = self.transladar(-px, -py)
+                    mat1 = self.transladar(-px, -py)                #Leva o ponto para a origem das coordenadas
                     ant = np.matmul(ant,mat1)
-                    mat2 = self.rotacionar(ang)
+                    mat2 = self.rotacionar(ang)                     #Rotaciona a matriz pelo ângulo dado
                     ant = np.matmul(ant,mat2)
-                    mat3 = self.transladar(px, py)
+                    mat3 = self.transladar(px, py)                  #Devolve o ponto até a posição original
                     ant = np.matmul(ant,mat3)
         return ant
 
     def transladar(self, dx, dy):
-        return np.matrix([[1,0,0], [0,1,0], [dx,dy,1]])
+        return np.matrix([[1,0,0], [0,1,0], [dx,dy,1]])             #Devolve a matriz da translação
 
     def escalonar(self, sx, sy):
-        return np.matrix([[sx,0,0], [0,sy,0], [0,0,1]])
+        return np.matrix([[sx,0,0], [0,sy,0], [0,0,1]])             #Devolve a matriz do escalonamento
 
     #np.sin(np.deg2rad(90))
-    def rotacionar(self, ang):
+    def rotacionar(self, ang):                                      #Devolve a matriz da rotação
         return np.matrix([[np.cos(np.deg2rad(ang)), np.sin(np.deg2rad(ang)),  0], [-np.sin(np.deg2rad(ang)), np.cos(np.deg2rad(ang)), 0], [0,0,1]])
 
     def fim_trans(self):
-        self.mat = self.calcular_mat()
+        self.mat = self.calcular_mat()      #Calcula a matriz de transições
         self.historico.delete(0, END)
-        self.obj_dict[self.obj_trans].moverXY(self.mat)
+        self.obj_dict[self.obj_trans].moverXY(self.mat) #Proprio objeto aplica a matriz conforme sua especificidade
         self.redesenhar()
 
     def cor_popup(self):
-        if len(self.object_list.curselection()) == 1: #Se um objeto selecionado
-            self.obj_act = self.object_list.get(self.object_list.curselection())
+        if len(self.object_list.curselection()) == 1:                               #Apenas um objeto selecionado
+            self.obj_act = self.object_list.get(self.object_list.curselection())    #Nome do objeto selecionado na listbox
             self.pop = Toplevel(self.main_window)
             self.pop.geometry("400x100+450+200")
             self.pop.title("Cor RGB")
@@ -596,14 +584,14 @@ class Window():
 
     def apply_color(self, rgb):
         rgbmin = rgb.lower()
-        if len(rgbmin) != 6:
+        if len(rgbmin) != 6:    #Caso mais ou menos do que 6 caracteres na entrada
             self.msg_rgb.configure(text="São 6 números para codificar o RGB!", foreground="red")
             return
         for i in rgbmin: 
-            if i not in string.hexdigits: 
+            if i not in string.hexdigits: #Caso um caracter não pertença aos hexadecimais
                 self.msg_rgb.configure(text="Insira números no formato HEXADECIMAL!", foreground="red")
                 return
-        self.obj_dict[self.obj_act].cor = "#"+ rgbmin
+        self.obj_dict[self.obj_act].cor = "#"+ rgbmin   #Objeto armazena sua cor
         self.msg_rgb.configure(text="Cor alterada com sucesso", foreground="SpringGreen2")
         self.redesenhar()
         

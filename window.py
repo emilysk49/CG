@@ -595,7 +595,3 @@ class Window():
         self.msg_rgb.configure(text="Cor alterada com sucesso", foreground="SpringGreen2")
         self.redesenhar()
         
-
-if __name__ == "__main__":
-    app = Window()
-    app.main_window.mainloop()

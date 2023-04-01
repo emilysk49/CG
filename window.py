@@ -84,7 +84,16 @@ class Window():
         self.direita = ImageTk.PhotoImage(Image.open("image/direita.png").resize((30,30), Image.ANTIALIAS))
 
         Button(self.tool_frame, image=self.direita, command=lambda:self.rotacionarWin(-15)).place(x=85, y=160)
-        Button(self.tool_frame, image=self.esquerda, command=lambda:self.rotacionarWin(-5)).place(x=45, y=160)
+        Button(self.tool_frame, image=self.esquerda, command=lambda:self.rotacionarWin(15)).place(x=45, y=160)
+
+        self.eixoX = Line("x", [(-100,0), (100,0)])
+        self.eixoY = Line("y", [(0,-100), (0, 100)])
+
+        #Como a window é iniciada no meio não precisamos normalizar nem nada, escolhemos os valores já normalizados padroes dos limites do viewport
+        self.canvas.create_line(self.xvp(-1), self.yvp(0), self.xvp(1), self.yvp(0), fill="black", width=3)
+        self.canvas.create_line(self.xvp(0), self.yvp(-1), self.xvp(0), self.yvp(1), fill="black", width=3)
+
+
         #Button(self.tool_frame, image=self.direita).place(x=20, y=140)
 
         #botoes para navegacao
@@ -104,13 +113,14 @@ class Window():
         self.zoomoutB.place(x=100, y=120)
 
         #duas linhas eixo x e y para criar plano cartesiano
-        self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
-        self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
+        #self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
+        #self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
         #posicoes 10 em x e y e -10 para referencia
-        self.canvas.create_text(self.xvp(10),self.yvp(1), text="10", fill="black")
-        self.canvas.create_text(self.xvp(1),self.yvp(10), text="10", fill="black")
-        self.canvas.create_text(self.xvp(-1),self.yvp(-10), text="-10", fill="black")
-        self.canvas.create_text(self.xvp(-10),self.yvp(-1), text="-10", fill="black")
+
+        #self.canvas.create_text(self.xvp(10),self.yvp(1), text="10", fill="black")
+        #self.canvas.create_text(self.xvp(1),self.yvp(10), text="10", fill="black")
+        #self.canvas.create_text(self.xvp(-1),self.yvp(-10), text="-10", fill="black")
+        #self.canvas.create_text(self.xvp(-10),self.yvp(-1), text="-10", fill="black")
 
     #transformada de viewport x
     def xvp(self, xw):
@@ -196,8 +206,10 @@ class Window():
                     self.canvas.create_line(self.xvp(tup[i][0]), self.yvp(tup[i][1]), self.xvp(tup[i-1][0]), self.yvp(tup[i-1][1]), fill=obj.cor, width=3)
                 
         #duas linhas eixo x e y para criar plano cartesiano
-        self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
-        self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
+        #self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
+        #self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
+        self.canvas.create_line(self.xvp(self.eixoX.coordNorm[0][0]), self.yvp(self.eixoX.coordNorm[0][1]), self.xvp(self.eixoX.coordNorm[1][0]), self.yvp(self.eixoX.coordNorm[1][1]), fill="black", width=3)
+        self.canvas.create_line(self.xvp(self.eixoY.coordNorm[0][0]), self.yvp(self.eixoY.coordNorm[0][1]), self.xvp(self.eixoY.coordNorm[1][0]), self.yvp(self.eixoY.coordNorm[1][1]), fill="black", width=3)
         #posicoes 10 em x e y e -10 para referencia
         '''
         self.canvas.create_text(self.xvp(10),self.yvp(1), text="10")
@@ -645,14 +657,20 @@ class Window():
         result = np.matmul(mat1, mat2)
         result = np.matmul(result, mat3)
         return result
-    
+        
+
+    #90 * np.pi/180
 
     def normalizar(self):
         mat = self.gerarDescricaoSCN()
 
         for obj in self.obj_dict.values():
             obj.normalize(mat)
+        self.eixoY.normalize(mat)
+        self.eixoX.normalize(mat)
 
 
-    def rotacionarWin(self, angulo):
-        pass
+    def rotacionarWin(self, ang):
+        self.windowObj.angulo = (self.windowObj.angulo+ang % 360)
+        self.normalizar()
+        self.redesenhar()

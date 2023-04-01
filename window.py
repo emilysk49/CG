@@ -83,8 +83,8 @@ class Window():
         self.esquerda = ImageTk.PhotoImage(Image.open("image/esquerda.png").resize((30,30), Image.ANTIALIAS))
         self.direita = ImageTk.PhotoImage(Image.open("image/direita.png").resize((30,30), Image.ANTIALIAS))
 
-        Button(self.tool_frame, image=self.direita, bg="gray").place(x=85, y=160)
-        Button(self.tool_frame, image=self.esquerda, bg="gray").place(x=45, y=160)
+        Button(self.tool_frame, image=self.direita, command=lambda:self.rotacionarWin(-15)).place(x=85, y=160)
+        Button(self.tool_frame, image=self.esquerda, command=lambda:self.rotacionarWin(-5)).place(x=45, y=160)
         #Button(self.tool_frame, image=self.direita).place(x=20, y=140)
 
         #botoes para navegacao
@@ -645,12 +645,14 @@ class Window():
         result = np.matmul(mat1, mat2)
         result = np.matmul(result, mat3)
         return result
-        
-
-    #90 * np.pi/180
+    
 
     def normalizar(self):
         mat = self.gerarDescricaoSCN()
 
         for obj in self.obj_dict.values():
             obj.normalize(mat)
+
+
+    def rotacionarWin(self, angulo):
+        pass

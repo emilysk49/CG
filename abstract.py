@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-import numpy
+import numpy as np
 
 class Tipo(Enum):
     POINT = 1
     LINE = 2
     POLYGON = 3
+    WIN = 4
 
 class ObjetoGrafico(ABC):
 
@@ -16,8 +17,10 @@ class ObjetoGrafico(ABC):
         self._coordenadas = coordenadas
         self.centroX = float()
         self.centroY = float()
+        self.coordNorm = list()
         self._cor = str
         self.calc_centro()
+    
         
 
     @property
@@ -57,6 +60,18 @@ class ObjetoGrafico(ABC):
         self.centroX = x/n
         self.centroY = y/n
     
-    def moverXY(self, mat: numpy.matrix):
+    def moverXY(self, mat: np.matrix):
         pass
 
+    def normalize(self, mat: np.matrix):
+        pass
+
+    def mulPontoMat(self, mat):
+        resposta = []
+        for i in self.coordenadas:
+            x = i[0]
+            y = i[1]
+            ponto = [x,y,1]
+            result = np.matmul(ponto, mat)
+            resposta.append((result.item(0),result.item(1)))
+        return resposta

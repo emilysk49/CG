@@ -3,8 +3,10 @@ from tkinter import ttk
 from point import Point
 from line import Line
 from polygon import Polygon
+from win import Win
 import numpy as np
 import string
+from PIL import Image, ImageTk
 
 
 class Window():
@@ -23,11 +25,15 @@ class Window():
         self.canvas = Canvas(self.main_window, width=570, height=570, bg="floral white")
         self.canvas.place(x=230, y=10)
         
-        #valores iniciais/escala da window, indo de x=-10 até 10, idem ao y
-        self.xwMin = -11
-        self.xwMax = 11
-        self.ywMin = -11
-        self.ywMax = 11
+        #valores iniciais/escala da window, indo de x=-11 até 11, idem ao y
+
+
+        self.windowObj = Win("Window")
+
+        #self.xwMin = -11
+        #self.xwMax = 11
+        #self.ywMin = -11
+        #self.ywMax = 11
 
         #tamanho da tela do viewport (canvas)
         self.xvMin = 0
@@ -72,6 +78,15 @@ class Window():
         self.tool_frame = Frame(self.dFile_frame, relief="raised", borderwidth=1, bg="gray")
         self.tool_frame.place(x=10, y=230, width=170, height=420)
 
+        #self.direita = PhotoImage(file="image/direita.gif")
+        #self.esquerda = PhotoImage(file="image/esquerda.gif")
+        self.esquerda = ImageTk.PhotoImage(Image.open("image/esquerda.png").resize((30,30), Image.ANTIALIAS))
+        self.direita = ImageTk.PhotoImage(Image.open("image/direita.png").resize((30,30), Image.ANTIALIAS))
+
+        Button(self.tool_frame, image=self.direita, bg="gray").place(x=85, y=160)
+        Button(self.tool_frame, image=self.esquerda, bg="gray").place(x=45, y=160)
+        #Button(self.tool_frame, image=self.direita).place(x=20, y=140)
+
         #botoes para navegacao
         self.upB = Button(self.tool_frame, text="UP", width=5, command=lambda:self.up())
         self.upB.place(x=50, y=15)
@@ -99,52 +114,65 @@ class Window():
 
     #transformada de viewport x
     def xvp(self, xw):
-        return ( ((xw-self.xwMin)/(self.xwMax - self.xwMin))*(self.xvMax-self.xvMin) ) 
+        #return ( ((xw-self.xwMin)/(self.xwMax - self.xwMin))*(self.xvMax-self.xvMin) )
+        return ( (xw-(-1))/(1-(-1))*(self.xvMax-self.xvMin)  )
+        
 
     #transformada de viewport y
     def yvp(self, yw):
-        return ( (1-((yw-self.ywMin)/(self.ywMax-self.ywMin)))*(self.yvMax-self.yvMin) )
+        #return ( (1-((yw-self.ywMin)/(self.ywMax-self.ywMin)))*(self.yvMax-self.yvMin) )
+        return ( (1-((yw-(-1))/(1-(-1))))*(self.yvMax-self.yvMin) )
     
     #para esquerda <- diminui os x's
     def left(self):
-        self.xwMin -= 1 
-        self.xwMax -= 1
+        #self.xwMin -= 1 
+        #self.xwMax -= 1
+        mat = [[1,0,0],[0,1,0],[-1,0,1]]
+        self.windowObj.moverXY(mat)
+        self.normalizar()
+        #chamar uma func normalizar que vai chamar o gerarDescricaoSCN para cada objeto
         self.redesenhar()
 
     #para direita -> aumenta os x's
     def right(self):
-        self.xwMax += 1
-        self.xwMin += 1
+        #self.xwMax += 1
+        #self.xwMin += 1
+        mat = [[1,0,0],[0,1,0],[1,0,1]]
+        self.windowObj.moverXY(mat)
+        self.normalizar()
         self.redesenhar()
 
     #para cima ↑ aumenta os y's
     def up(self):
-        self.ywMax += 1
-        self.ywMin += 1
+        #self.ywMax += 1
+        #self.ywMin += 1
+        mat = [[1,0,0],[0,1,0],[0,1,1]]
+        self.windowObj.moverXY(mat)
+        self.normalizar()
         self.redesenhar()
 
     #para baixo ↓ diminui os y's
     def down(self):
-        self.ywMax -= 1
-        self.ywMin -= 1
+        #self.ywMax -= 1
+        #self.ywMin -= 1
+        mat = [[1,0,0],[0,1,0],[0,-1,1]]
+        self.windowObj.moverXY(mat)
+        self.normalizar()
         self.redesenhar()
 
     #zoomin -> aproxima os pontos da window
     def zoomIn(self):
         #Verificacao para nao inverter a tela com muito zoomIn (rever para possiveis diferentes niveis de zoom)
-        if not (((self.xwMax-1) <= (self.xwMin+1)) or ((self.yvMax-1) <= (self.yvMin+1))): 
-            self.xwMax -= 1
-            self.xwMin += 1
-            self.ywMax -= 1
-            self.ywMin += 1
+        mat = [[0.9, 0, 0],[0, 0.9, 0],[0, 0, 1]]
+        self.windowObj.moverXY(mat)
+        self.normalizar()
         self.redesenhar()
     
     #zoomout -> afasta os pontos da window
     def zoomOut(self):
-        self.xwMax += 1
-        self.xwMin -= 1
-        self.ywMax += 1
-        self.ywMin -= 1
+        mat = [[1.1, 0, 0],[0, 1.1, 0],[0, 0, 1]]
+        self.windowObj.moverXY(mat)
+        self.normalizar()
         self.redesenhar()
 
 
@@ -155,27 +183,29 @@ class Window():
         #vai verificar se tem objeto para redesenhar
         for obj in self.obj_dict.values():
 
-            tup = obj.coordenadas
+            tup = obj.coordNorm
             
             if obj.tipo == 1: #se ponto
                 self.canvas.create_oval(self.xvp(tup[0][0])-3, self.yvp(tup[0][1])-3, self.xvp(tup[0][0])+3, self.yvp(tup[0][1])+3, fill=obj.cor)
 
             elif obj.tipo == 2: #se linha
                 self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
-            
+
             elif obj.tipo == 3: #se poligono
                 for i in range (len(tup)):
                     self.canvas.create_line(self.xvp(tup[i][0]), self.yvp(tup[i][1]), self.xvp(tup[i-1][0]), self.yvp(tup[i-1][1]), fill=obj.cor, width=3)
-    
+                
         #duas linhas eixo x e y para criar plano cartesiano
         self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
         self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
         #posicoes 10 em x e y e -10 para referencia
+        '''
         self.canvas.create_text(self.xvp(10),self.yvp(1), text="10")
         self.canvas.create_text(self.xvp(1),self.yvp(10), text="10")
         self.canvas.create_text(self.xvp(-1),self.yvp(-10), text="-10")
         self.canvas.create_text(self.xvp(-10),self.yvp(-1), text="-10")
-
+        '''
+        
     def criar_ponto(self):
         try:
             nome = self.nome_obj.get()
@@ -184,6 +214,8 @@ class Window():
                 y = float(self.entrada_y.get())
                 self.object_list.insert(END, nome) #insere o nome do objeto na listbox
                 self.obj_dict[nome] = Point(nome, [(x,y)]) #adiciona o ponto no dicionario de objetos, chave = nome
+                mat = self.gerarDescricaoSCN()
+                self.obj_dict[nome].normalize(mat)
                 self.redesenhar()
                 self.msg_label.config(text="Ponto adicionado!", foreground="SpringGreen2")
             else:
@@ -203,6 +235,8 @@ class Window():
 
                 self.object_list.insert(END, nome) #insere o nome do objeto na listbox
                 self.obj_dict[nome] = Line(nome, [(x1,y1),(x2,y2)]) #adiciona a linha no dicionario de objetos, chave = nome
+                mat = self.gerarDescricaoSCN()
+                self.obj_dict[nome].normalize(mat)
                 self.redesenhar()
                 self.msg_label2.config(text="Linha adicionada!", foreground="SpringGreen2")
             else:
@@ -228,6 +262,8 @@ class Window():
             pontos = self.pontos_pol[:] #copia a lista
             self.obj_dict[nome] = Polygon(nome, pontos)
             self.pontos_pol = []
+            mat = self.gerarDescricaoSCN()
+            self.obj_dict[nome].normalize(mat)
             self.redesenhar()
             self.msg_label3.config(text="Polígono criado!", foreground="SpringGreen2")
         else:
@@ -561,6 +597,8 @@ class Window():
         self.mat = self.calcular_mat()      #Calcula a matriz de transições
         self.historico.delete(0, END)
         self.obj_dict[self.obj_trans].moverXY(self.mat) #Proprio objeto aplica a matriz conforme sua especificidade
+        mat = self.gerarDescricaoSCN()
+        self.obj_dict[self.obj_trans].normalize(mat)
         self.redesenhar()
 
     def cor_popup(self):
@@ -595,3 +633,24 @@ class Window():
         self.msg_rgb.configure(text="Cor alterada com sucesso", foreground="SpringGreen2")
         self.redesenhar()
         
+    #############################################################################################################################################################################
+
+    def gerarDescricaoSCN(self):
+        mat1 = self.transladar(-self.windowObj.centroX, -self.windowObj.centroY) 
+        mat2 = self.rotacionar(-self.windowObj.angulo)
+
+        x = abs(self.windowObj.BE[0] - self.windowObj.BD[0])/2
+        y = abs(self.windowObj.BE[1] - self.windowObj.CE[1])/2
+        mat3 = self.escalonar(1/x, 1/y)
+        result = np.matmul(mat1, mat2)
+        result = np.matmul(result, mat3)
+        return result
+        
+
+    #90 * np.pi/180
+
+    def normalizar(self):
+        mat = self.gerarDescricaoSCN()
+
+        for obj in self.obj_dict.values():
+            obj.normalize(mat)

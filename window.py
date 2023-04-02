@@ -138,7 +138,8 @@ class Window():
     def left(self):
         #self.xwMin -= 1 
         #self.xwMax -= 1
-        mat = [[1,0,0],[0,1,0],[-1,0,1]]
+        #mat = [[1,0,0],[0,1,0],[-1,0,1]]
+        mat = [[1,0,0],[0,1,0],[-np.cos(np.deg2rad(self.windowObj.angulo)),-np.sin(np.deg2rad(self.windowObj.angulo)),1]]
         self.windowObj.moverXY(mat)
         self.normalizar()
         #chamar uma func normalizar que vai chamar o gerarDescricaoSCN para cada objeto
@@ -148,7 +149,8 @@ class Window():
     def right(self):
         #self.xwMax += 1
         #self.xwMin += 1
-        mat = [[1,0,0],[0,1,0],[1,0,1]]
+        #mat = [[1,0,0],[0,1,0],[1,0,1]]
+        mat = [[1,0,0],[0,1,0],[np.cos(np.deg2rad(self.windowObj.angulo)),np.sin(np.deg2rad(self.windowObj.angulo)),1]]
         self.windowObj.moverXY(mat)
         self.normalizar()
         self.redesenhar()
@@ -157,7 +159,7 @@ class Window():
     def up(self):
         #self.ywMax += 1
         #self.ywMin += 1
-        mat = [[1,0,0],[0,1,0],[0,1,1]]
+        mat = [[1,0,0],[0,1,0],[-np.sin(np.deg2rad(self.windowObj.angulo)),np.cos(np.deg2rad(self.windowObj.angulo)),1]]
         self.windowObj.moverXY(mat)
         self.normalizar()
         self.redesenhar()
@@ -166,7 +168,8 @@ class Window():
     def down(self):
         #self.ywMax -= 1
         #self.ywMin -= 1
-        mat = [[1,0,0],[0,1,0],[0,-1,1]]
+        #mat = [[1,0,0],[0,1,0],[0,-1,1]]
+        mat = [[1,0,0],[0,1,0],[np.sin(np.deg2rad(self.windowObj.angulo)),-np.cos(np.deg2rad(self.windowObj.angulo)),1]]
         self.windowObj.moverXY(mat)
         self.normalizar()
         self.redesenhar()

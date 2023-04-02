@@ -92,6 +92,7 @@ class Window():
         #Como a window é iniciada no meio não precisamos normalizar nem nada, escolhemos os valores já normalizados padroes dos limites do viewport
         self.canvas.create_line(self.xvp(-1), self.yvp(0), self.xvp(1), self.yvp(0), fill="black", width=3)
         self.canvas.create_line(self.xvp(0), self.yvp(-1), self.xvp(0), self.yvp(1), fill="black", width=3)
+        self.normalizar()
 
 
         #Button(self.tool_frame, image=self.direita).place(x=20, y=140)
@@ -190,6 +191,9 @@ class Window():
     def redesenhar(self):
         self.canvas.delete("all") #primeiro apaga tudo
 
+        self.canvas.create_line(self.xvp(self.eixoX.coordNorm[0][0]), self.yvp(self.eixoX.coordNorm[0][1]), self.xvp(self.eixoX.coordNorm[1][0]), self.yvp(self.eixoX.coordNorm[1][1]), fill="black", width=3)
+        self.canvas.create_line(self.xvp(self.eixoY.coordNorm[0][0]), self.yvp(self.eixoY.coordNorm[0][1]), self.xvp(self.eixoY.coordNorm[1][0]), self.yvp(self.eixoY.coordNorm[1][1]), fill="black", width=3)
+
         #vai verificar se tem objeto para redesenhar
         for obj in self.obj_dict.values():
 
@@ -208,8 +212,7 @@ class Window():
         #duas linhas eixo x e y para criar plano cartesiano
         #self.canvas.create_line(self.xvp(0), self.yvMax, self.xvp(0), self.yvMin, fill="gray", width=2, arrow=BOTH)
         #self.canvas.create_line(self.xvMin, self.yvp(0), self.xvMax, self.yvp(0), fill="gray", width=2, arrow=BOTH)
-        self.canvas.create_line(self.xvp(self.eixoX.coordNorm[0][0]), self.yvp(self.eixoX.coordNorm[0][1]), self.xvp(self.eixoX.coordNorm[1][0]), self.yvp(self.eixoX.coordNorm[1][1]), fill="black", width=3)
-        self.canvas.create_line(self.xvp(self.eixoY.coordNorm[0][0]), self.yvp(self.eixoY.coordNorm[0][1]), self.xvp(self.eixoY.coordNorm[1][0]), self.yvp(self.eixoY.coordNorm[1][1]), fill="black", width=3)
+        
         #posicoes 10 em x e y e -10 para referencia
         '''
         self.canvas.create_text(self.xvp(10),self.yvp(1), text="10")

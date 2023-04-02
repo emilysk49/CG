@@ -1,5 +1,5 @@
-from interface import Interface
+from window import Window
 
 if __name__ == "__main__":
-    app = Interface()
+    app = Window()
     app.main_window.mainloop()

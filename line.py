@@ -6,6 +6,8 @@ class Line(ObjetoGrafico):
     def __init__(self, nome, coordenadas):
         super().__init__(nome, Tipo.LINE.value, coordenadas)
         self.cor = "#0000ff"
+        self.desenhavel = bool
+        self.coordClip = []
 
     def moverXY(self, mat):
         self.coordenadas = self.mulPontoMat(mat)

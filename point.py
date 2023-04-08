@@ -6,6 +6,7 @@ class Point(ObjetoGrafico):
     def __init__(self, nome, coordenadas):
         super().__init__(nome, Tipo.POINT.value, coordenadas)
         self.cor = "#ff0000"
+        self.desenhavel = bool
 
     def moverXY(self, mat):
         self.coordenadas = self.mulPontoMat(mat)

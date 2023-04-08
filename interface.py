@@ -1,13 +1,14 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter import filedialog
 from point import Point
 from line import Line
 from polygon import Polygon
 from window import Window
+from objHandler import ObjReader
 import numpy as np
 import string
 from PIL import Image, ImageTk
-
 
 class Interface():
     def __init__(self):
@@ -15,6 +16,16 @@ class Interface():
         self.main_window.geometry("930x700+450+200")
         self.main_window.title("Computer Graphic")
         self.main_window["bg"]= "gray"
+
+        self.obj = ObjReader()
+
+        self.menubar = Menu(self.main_window)
+        self.menubar.option_add("*tearOff", FALSE)
+        self.main_window["menu"] = self.menubar
+        self.menu_file = Menu(self.menubar)
+        self.menubar.add_cascade(menu=self.menu_file, label="Menu")
+        self.menu_file.add_command(label="Importar", command=self.importa)
+        self.menu_file.add_command(label="Exportar", command=self.obj.open_file)
 
         #relief opcoes: solid, flat, raised, sunken
         #Frame das opcoes escontradas na esquerda da tela
@@ -28,11 +39,14 @@ class Interface():
         #tarefa3 -> agora nosso window eh objeto para facilitar na rotacao do window
         self.windowObj = Window("Window")
 
+        self.margem = 20
+
         #tamanho da tela do viewport (canvas)
-        self.xvMin = 0
-        self.xvMax = 570
-        self.yvMin = 0
-        self.yvMax = 570
+        self.xvMin = 0   #0
+        self.xvMax = 570 -(self.margem*2) #570 é nosso padrao do canvas,
+        self.yvMin = 0   #0                    a margem x2 é para tratar ambos lados
+        self.yvMax = 570 -(self.margem*2) #570
+    
 
         #ainda nao tem implementacao e apenas frame para logs
         self.log_frame = Frame(self.main_window, borderwidth=1, relief="raised", bg="gray")
@@ -82,9 +96,10 @@ class Interface():
         self.eixoY = Line("y", [(0,-100), (0, 100)])
 
         #Como a window é iniciada no meio não precisamos normalizar nem nada, escolhemos os valores já normalizados padroes dos limites do viewport
-        self.canvas.create_line(self.xvp(-1), self.yvp(0), self.xvp(1), self.yvp(0), fill="black", width=3)
-        self.canvas.create_line(self.xvp(0), self.yvp(-1), self.xvp(0), self.yvp(1), fill="black", width=3)
+        #self.canvas.create_line(self.xvp(-1), self.yvp(0), self.xvp(1), self.yvp(0), fill="black", width=3)
+        #self.canvas.create_line(self.xvp(0), self.yvp(-1), self.xvp(0), self.yvp(1), fill="black", width=3)
         self.normalizar()
+        self.redesenhar()
 
         #botoes para navegacao
         self.upB = Button(self.tool_frame, text="UP", width=5, command=lambda:self.up())
@@ -104,12 +119,12 @@ class Interface():
 
     #transformada de viewport x
     def xvp(self, xw):
-        return ( (xw-(-1))/(1-(-1))*(self.xvMax-self.xvMin)  ) #padronizando em SCN 
+        return ( ((xw-(-1))/(1-(-1)))*(self.xvMax-self.xvMin) + self.margem) #padronizando em SCN 
         
 
     #transformada de viewport y
     def yvp(self, yw):
-        return ( (1-((yw-(-1))/(1-(-1))))*(self.yvMax-self.yvMin) )  #padronizando em SCN 
+        return ( (1-((yw-(-1))/(1-(-1))))*(self.yvMax-self.yvMin) + self.margem)  #padronizando em SCN 
     
     #para esquerda <- diminui os x's
     def left(self):
@@ -168,16 +183,25 @@ class Interface():
         self.canvas.create_line(self.xvp(self.eixoX.coordNorm[0][0]), self.yvp(self.eixoX.coordNorm[0][1]), self.xvp(self.eixoX.coordNorm[1][0]), self.yvp(self.eixoX.coordNorm[1][1]), fill="black", width=3)
         self.canvas.create_line(self.xvp(self.eixoY.coordNorm[0][0]), self.yvp(self.eixoY.coordNorm[0][1]), self.xvp(self.eixoY.coordNorm[1][0]), self.yvp(self.eixoY.coordNorm[1][1]), fill="black", width=3)
 
+        #Desenha a zona do canvas
+        self.canvas.create_line(self.xvMin+self.margem, self.yvMin+self.margem ,self.xvMax+self.margem, self.yvMin+self.margem, fill="red", width=3) #Horizontal cima
+        self.canvas.create_line(self.xvMax+self.margem, self.yvMin+self.margem, self.xvMax+self.margem, self.yvMax+self.margem, fill="red", width=3) #Vertical direita
+        self.canvas.create_line(self.xvMin+self.margem, self.yvMax+self.margem, self.xvMax+self.margem, self.yvMax+self.margem, fill="red", width=3) #Horizontal baixo
+        self.canvas.create_line(self.xvMin+self.margem, self.yvMin+self.margem, self.xvMin+self.margem, self.yvMax+self.margem, fill="red", width=3)
+
         #vai verificar se tem objeto para redesenhar
         for obj in self.obj_dict.values():
 
             tup = obj.coordNorm
             
             if obj.tipo == 1: #se ponto
-                self.canvas.create_oval(self.xvp(tup[0][0])-3, self.yvp(tup[0][1])-3, self.xvp(tup[0][0])+3, self.yvp(tup[0][1])+3, fill=obj.cor)
+                if obj.desenhavel:
+                    self.canvas.create_oval(self.xvp(tup[0][0])-3, self.yvp(tup[0][1])-3, self.xvp(tup[0][0])+3, self.yvp(tup[0][1])+3, fill=obj.cor)
 
             elif obj.tipo == 2: #se linha
-                self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
+                if obj.desenhavel:
+                    tup = obj.coordClip
+                    self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
 
             elif obj.tipo == 3: #se poligono
                 for i in range (len(tup)):
@@ -194,6 +218,7 @@ class Interface():
                 self.obj_dict[nome] = Point(nome, [(x,y)]) #adiciona o ponto no dicionario de objetos, chave = nome
                 mat = self.gerarDescricaoSCN()             #gera descricao de SCN
                 self.obj_dict[nome].normalize(mat)         #normaliza objeto criado
+                self.ponto_clipping(self.obj_dict[nome])
                 self.redesenhar()
                 self.msg_label.config(text="Ponto adicionado!", foreground="SpringGreen2")
             else:
@@ -215,6 +240,7 @@ class Interface():
                 self.obj_dict[nome] = Line(nome, [(x1,y1),(x2,y2)]) #adiciona a linha no dicionario de objetos, chave = nome
                 mat = self.gerarDescricaoSCN()                      #gerar descricao de SCN
                 self.obj_dict[nome].normalize(mat)                  #normaliza objeto criado
+                self.liang_barsky(self.obj_dict[nome])
                 self.redesenhar()
                 self.msg_label2.config(text="Linha adicionada!", foreground="SpringGreen2")
             else:
@@ -636,6 +662,10 @@ class Interface():
         #aplica normalizacao para todos objetos
         for obj in self.obj_dict.values():
             obj.normalize(mat)
+            if (obj.tipo == 1):
+                self.ponto_clipping(obj)
+            elif (obj.tipo == 2):
+                self.liang_barsky(obj)
         self.eixoY.normalize(mat)
         self.eixoX.normalize(mat)
 
@@ -645,3 +675,89 @@ class Interface():
         self.windowObj.angulo = (self.windowObj.angulo+ang % 360)
         self.normalizar()
         self.redesenhar()
+
+    def ponto_clipping(self, ponto: Point):
+        if (ponto.coordNorm[0][0] < -1 or ponto.coordNorm[0][0] > 1 or
+            ponto.coordNorm[0][1] < -1 or ponto.coordNorm[0][1] > 1):
+            ponto.desenhavel = False
+        else:
+            ponto.desenhavel = True
+
+    def liang_barsky(self, linha: Line):
+        p = []
+        q = []
+        
+        p.append(-(linha.coordNorm[1][0]-linha.coordNorm[0][0])) #-delta x
+        p.append(linha.coordNorm[1][0]-linha.coordNorm[0][0])    #delta x
+        p.append(-(linha.coordNorm[1][1]-linha.coordNorm[0][1])) #-delta y
+        p.append(linha.coordNorm[1][1]-linha.coordNorm[0][1])    #delta y
+
+        q.append(linha.coordNorm[0][0]-(-1))        #x1-xwmin
+        q.append(1-linha.coordNorm[0][0])           #xwmax-x1
+        q.append(linha.coordNorm[0][1]-(-1))        #y1-ywmin
+        q.append(1-linha.coordNorm[0][1])           #ywmax-y1
+
+        neg = []
+        pos = []
+        for i in range(len(p)):
+            if p[i] < 0:           #se negativo
+                neg.append(i)
+            elif p[i] > 0:         #se posiivo
+                pos.append(i)
+            else:                  #se da 0
+                if q[i] < 0:       #precisa verificar q[i]
+                    linha.desenhavel = False
+                    return
+        
+        zeta1 = 0
+        for i in neg:
+            r = q[i]/p[i]
+            zeta1 = max(zeta1,r)
+
+        zeta2 = 1
+        for i in pos:
+            r= q[i]/p[i]
+            zeta2 = min(zeta2, r)
+
+        if zeta1 > zeta2:
+            linha.desenhavel = False
+            return
+
+        if zeta1 != 0:
+            x1 = linha.coordNorm[0][0] + zeta1*p[1]
+            y1 = linha.coordNorm[0][1] + zeta1*p[3]
+            linha.desenhavel = True 
+            linha.coordClip = [(x1,y1)]
+        else:
+            x1 = linha.coordNorm[0][0]
+            y1 = linha.coordNorm[0][1]
+            linha.desenhavel = True
+            linha.coordClip = [(x1,y1)]
+        
+        if zeta2 != 1:
+            x2 = linha.coordNorm[0][0] + zeta2*p[1]
+            y2 = linha.coordNorm[0][1] + zeta2*p[3]
+            linha.desenhavel = True
+            linha.coordClip = [linha.coordClip[0], (x2,y2)]
+        else:
+            x1 = linha.coordNorm[1][0]
+            y1 = linha.coordNorm[1][1]
+            linha.desenhavel = True
+            linha.coordClip = [linha.coordClip[0], (x1,y1)]
+            
+    def importa(self):
+        objetos = self.obj.open_file()
+
+        for o in objetos:
+            self.object_list.insert(END, o.nome)         #insere o nome do objeto na listbox
+            self.obj_dict[o.nome] = o #adiciona o ponto no dicionario de objetos, chave = nome
+            mat = self.gerarDescricaoSCN()             #gera descricao de SCN
+            self.obj_dict[o.nome].normalize(mat)         #normaliza objeto criado
+        
+            if (o.tipo == 1):
+                self.ponto_clipping(self.obj_dict[o.nome])
+            elif (o.tipo == 2):
+                self.liang_barsky(self.obj_dict[o.nome])
+        self.redesenhar()
+        
+        

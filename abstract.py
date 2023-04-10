@@ -75,3 +75,13 @@ class ObjetoGrafico(ABC):
             result = np.matmul(ponto, mat)
             resposta.append((result.item(0),result.item(1)))
         return resposta
+
+    def export(self):
+        exp = {}
+        exp["nome"] = self.nome 
+        exp["coord"] = self.coordenadas
+        exp["cor"] = self.cor
+        exp["tipo"] = self.tipo
+
+        return exp
+        

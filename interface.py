@@ -5,7 +5,7 @@ from point import Point
 from line import Line
 from polygon import Polygon
 from window import Window
-from objHandler import ObjReader
+from objHandler import ObjHandler
 import numpy as np
 import string
 from PIL import Image, ImageTk
@@ -17,15 +17,15 @@ class Interface():
         self.main_window.title("Computer Graphic")
         self.main_window["bg"]= "gray"
 
-        self.obj = ObjReader()
+        self.obj = ObjHandler()
 
         self.menubar = Menu(self.main_window)
         self.menubar.option_add("*tearOff", FALSE)
         self.main_window["menu"] = self.menubar
         self.menu_file = Menu(self.menubar)
         self.menubar.add_cascade(menu=self.menu_file, label="Menu")
-        self.menu_file.add_command(label="Importar", command=self.importa)
-        self.menu_file.add_command(label="Exportar", command=self.obj.open_file)
+        self.menu_file.add_command(label="Importar", command=self.importar)
+        self.menu_file.add_command(label="Exportar", command=self.exportar)
 
         #relief opcoes: solid, flat, raised, sunken
         #Frame das opcoes escontradas na esquerda da tela
@@ -84,6 +84,18 @@ class Interface():
         #frame das ferramentas de movimento da window
         self.tool_frame = Frame(self.dFile_frame, relief="raised", borderwidth=1, bg="gray")
         self.tool_frame.place(x=10, y=230, width=170, height=420)
+
+        #frame para escolha do clip de linha
+        self.choose_frame = Frame(self.tool_frame, relief="raised", borderwidth=1, bg="gray")
+        self.choose_frame.place(x=10, y=220, width=150, height=75)
+
+
+        self.clip_selection = StringVar() #Tipo para receber saida do RadioButton
+        #Radiobutton são as partes de click para selecionar opção
+        rb = Radiobutton(self.choose_frame, text="Liang Barsky", value="l", variable=self.clip_selection, bg="gray")
+        rb.place(x=5,y=0)
+        rb2 = Radiobutton(self.choose_frame, text="Outro", value="o", variable=self.clip_selection, bg="gray")
+        rb2.place(x=5,y=35)
 
         #botoes para rotacionar window (padronizamos para 15 graus de rotacao)
         self.esquerda = ImageTk.PhotoImage(Image.open("image/esquerda.png").resize((30,30), Image.ANTIALIAS))
@@ -204,8 +216,12 @@ class Interface():
                     self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
 
             elif obj.tipo == 3: #se poligono
-                for i in range (len(tup)):
-                    self.canvas.create_line(self.xvp(tup[i][0]), self.yvp(tup[i][1]), self.xvp(tup[i-1][0]), self.yvp(tup[i-1][1]), fill=obj.cor, width=3)
+                tup = obj.coordClip
+                for i in range (len(tup)-1):
+                    if tup[i] and tup[i+1] and not(tup[i][1] == "s" and tup[i+1][1] == "e"):     #Utilizamos uma tupla vazia para indicar a parte onde nao queremos traçar uma linha
+                                                                                                   #Segundo argumento verifica se são duas intersecçoes seguidas, caso sim
+                                                                                                   #Se for, atenção ao caso de uma saida e uma entrada seguida, ao isso acontecer não trace entre
+                        self.canvas.create_line(self.xvp(tup[i][0][0]), self.yvp(tup[i][0][1]), self.xvp(tup[i+1][0][0]), self.yvp(tup[i+1][0][1]), fill=obj.cor, width=3)
                 
         
     def criar_ponto(self):
@@ -240,7 +256,9 @@ class Interface():
                 self.obj_dict[nome] = Line(nome, [(x1,y1),(x2,y2)]) #adiciona a linha no dicionario de objetos, chave = nome
                 mat = self.gerarDescricaoSCN()                      #gerar descricao de SCN
                 self.obj_dict[nome].normalize(mat)                  #normaliza objeto criado
-                self.liang_barsky(self.obj_dict[nome])
+                print("Criando e passando por line_clip")
+                self.line_clip(self.obj_dict[nome])
+                print("line_clip efetuado na criação, indo desenhar")
                 self.redesenhar()
                 self.msg_label2.config(text="Linha adicionada!", foreground="SpringGreen2")
             else:
@@ -268,6 +286,7 @@ class Interface():
             self.pontos_pol = []
             mat = self.gerarDescricaoSCN()              #gerar descricao de SCN
             self.obj_dict[nome].normalize(mat)          #normaliza objeto criado
+            self.weiler_atherton(self.obj_dict[nome])
             self.redesenhar()
             self.msg_label3.config(text="Polígono criado!", foreground="SpringGreen2")
         else:
@@ -665,7 +684,9 @@ class Interface():
             if (obj.tipo == 1):
                 self.ponto_clipping(obj)
             elif (obj.tipo == 2):
-                self.liang_barsky(obj)
+                self.line_clip(obj)
+            elif (obj.tipo == 3):
+                self.weiler_atherton(obj)
         self.eixoY.normalize(mat)
         self.eixoX.normalize(mat)
 
@@ -682,6 +703,16 @@ class Interface():
             ponto.desenhavel = False
         else:
             ponto.desenhavel = True
+
+    def line_clip(self, linha: Line):
+        var = self.clip_selection.get()
+        if (var == "l"):
+            self.liang_barsky(linha)
+        else:
+            print("Estamos esperando resposta no fórum")
+            print("Só tem liang barsky por enquanto")
+            self.liang_barsky(linha)
+            
 
     def liang_barsky(self, linha: Line):
         p = []
@@ -744,20 +775,65 @@ class Interface():
             y1 = linha.coordNorm[1][1]
             linha.desenhavel = True
             linha.coordClip = [linha.coordClip[0], (x1,y1)]
-            
-    def importa(self):
+
+    def weiler_atherton(self, pol: Polygon):                #Inspirado em weiler-atherton, mas refizemos algumas partes conforme consideramos mais simples
+        coord = []                                          #Andamos em cada ponto avaliando 
+        for i in range(len(pol.coordNorm)):
+            p1 = pol.coordNorm[i-1]
+            p2 = pol.coordNorm[i]
+            if (p1[0] <= 1 and p1[0] >= -1 and p1[1] <= 1 and p1[1] >= -1 and #Se p1 está na window
+                p2[0] <= 1 and p2[0] >= -1 and p2[1] <= 1 and p2[1] >= -1):   #Se p2 está na window
+                if (not coord) or coord[-1] != p1 :                           #Se nao eh primeiro da lista ou se ultimo nao eh p1 (cuidar pra nao incluir de novo)
+                    coord.append( (p1, False) )   
+                coord.append((p2, False) )
+            elif (p1[0] <= 1 and p1[0] >= -1 and p1[1] <= 1 and p1[1] >= -1): #Se apenas p1 está na window
+                if (not coord) or coord[-1] != p1:                            #Se nao eh primeiro da lista ou se ultimo nao eh p1 (cuidar pra nao incluir de novo)
+                    coord.append((p1, False))                                 #Logo, p2 tem intersecção
+                l = Line("_________", [p1,p2])
+                l.coordNorm = [p1, p2]
+                self.liang_barsky(l)
+                coord.append((l.coordClip[1], "s"))                           # "s" indica que eh sainte
+            elif (p2[0] <= 1 and p2[0] >= -1 and p2[1] <= 1 and p2[1] >= -1): #Se apenas p2 está na window
+                l = Line("_________", [p1,p2])
+                l.coordNorm = [p1, p2]
+                self.liang_barsky(l)
+                if (not coord) or coord[-1] != l.coordClip[0]:                #Se nao eh primeiro da lista ou se ultimo nao eh mesma interseccao 
+                    coord.append((l.coordClip[0], "e"))                       # "e" indica que eh entrante
+                coord.append((p2, False))                                     #Logo, p1 tem intersecção
+        
+            else:                                                             #Se nenhum deles está dentro da windo
+                l = Line("_________", [p1,p2])
+                l.coordNorm = [p1, p2]
+                self.liang_barsky(l)
+                if l.desenhavel:                                              #Caso tenha intersecção
+                    if (not coord) or (coord[-1] != l.coordClip[0]):          #Se nao eh primeiro da lista ou se ultimo nao eh mesma interseccao 
+                        coord.append( (l.coordClip[0], "e") )                 # "e" indica que eh entrante
+                    coord.append( (l.coordClip[1], "s") )                     # "s" indica que eh sainte
+                else:
+                    coord.append(())
+
+        pol.coordClip = coord
+
+           
+    def importar(self):
         objetos = self.obj.open_file()
 
         for o in objetos:
             self.object_list.insert(END, o.nome)         #insere o nome do objeto na listbox
-            self.obj_dict[o.nome] = o #adiciona o ponto no dicionario de objetos, chave = nome
-            mat = self.gerarDescricaoSCN()             #gera descricao de SCN
+            self.obj_dict[o.nome] = o                    #adiciona o ponto no dicionario de objetos, chave = nome
+            mat = self.gerarDescricaoSCN()               #gera descricao de SCN
             self.obj_dict[o.nome].normalize(mat)         #normaliza objeto criado
         
             if (o.tipo == 1):
                 self.ponto_clipping(self.obj_dict[o.nome])
             elif (o.tipo == 2):
-                self.liang_barsky(self.obj_dict[o.nome])
+                self.line_clip(self.obj_dict[o.nome])
+            elif (o.tipo == 3):
+                self.weiler_atherton(self.obj_dict[o.nome])
         self.redesenhar()
-        
-        
+
+    def exportar(self):
+        list_obj = []
+        for obj in self.obj_dict.values():
+            list_obj.append(obj.export())               #Cada objeto prepara uma dicionário próprio
+        self.obj.write_file(list_obj)                   #para auxiliar na exportação

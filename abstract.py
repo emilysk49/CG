@@ -7,6 +7,7 @@ class Tipo(Enum):
     LINE = 2
     POLYGON = 3
     WIN = 4
+    CURVEB = 5
 
 class ObjetoGrafico(ABC):
 

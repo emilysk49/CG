@@ -15,3 +15,10 @@ class Point(ObjetoGrafico):
     def normalize(self, mat: np.matrix):
         self.coordNorm = self.mulPontoMat(mat)
 
+    def ponto_clipping(self):
+        if (self.coordNorm[0][0] < -1 or self.coordNorm[0][0] > 1 or
+            self.coordNorm[0][1] < -1 or self.coordNorm[0][1] > 1):
+            self.desenhavel = False
+        else:
+            self.desenhavel = True
+

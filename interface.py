@@ -1,14 +1,16 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter.ttk import Style
 from point import Point
 from line import Line
 from polygon import Polygon
 from window import Window
-from curve import CurveB
+from curve import Curve
 from objHandler import ObjHandler
 import numpy as np
 import string
+from createObj import CreateObj
 from PIL import Image, ImageTk
 
 class Interface():
@@ -17,6 +19,9 @@ class Interface():
         self.main_window.geometry("930x700+450+200")
         self.main_window.title("Computer Graphic")
         self.main_window["bg"]= "gray"
+
+        style = Style()
+        style.theme_use('alt')
 
         self.obj = ObjHandler()
 
@@ -40,7 +45,8 @@ class Interface():
         #tarefa3 -> agora nosso window eh objeto para facilitar na rotacao do window
         self.windowObj = Window("Window")
 
-        self.margem = 20
+        #margem para area de clipping
+        self.margem = 20 
 
         #tamanho da tela do viewport (canvas)
         self.xvMin = 0   #0
@@ -73,7 +79,7 @@ class Interface():
         self.apagarB = Button(self.dFile_frame, text="Delete", command=lambda:self.apagar_objeto())
         self.apagarB.place(x=70, y=155, width=60)
         #botao para adicionar objeto novo -> abre um popup
-        self.objectB = Button(self.dFile_frame, text="Add", command=lambda:self.criar_objeto())
+        self.objectB = Button(self.dFile_frame, text="Add", command=lambda:CreateObj(self))
         self.objectB.place(x=10, y=155, width=60)
         #botao para selecionar cor
         self.colorB = Button(self.dFile_frame, text="Cor", width=2 , command=lambda:self.cor_popup())
@@ -222,255 +228,14 @@ class Interface():
                                                                                                    #Se for, atenção ao caso de uma saida e uma entrada seguida, ao isso acontecer não trace entre
                         self.canvas.create_line(self.xvp(tup[i][0][0]), self.yvp(tup[i][0][1]), self.xvp(tup[i+1][0][0]), self.yvp(tup[i+1][0][1]), fill=obj.cor, width=3)
             
-
             elif obj.tipo == 5: #se curva
                 #print("ACHOU UMA CURVA")
+
                 for lin in obj.linhas:
                     if lin.desenhavel:
                         tup = lin.coordClip
                         self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
-        
-    def criar_ponto(self):
-        try:
-            nome = self.nome_obj.get()
-            if not (nome in self.obj_dict.keys()):         #verifica se nao tem o objeto com mesmo nome 
-                x = float(self.entrada_x.get())            #cuida que x e y nao recebeu entrada de string
-                y = float(self.entrada_y.get())
-                self.object_list.insert(END, nome)         #insere o nome do objeto na listbox
-                self.obj_dict[nome] = Point(nome, [(x,y)]) #adiciona o ponto no dicionario de objetos, chave = nome
-                mat = self.gerarDescricaoSCN()             #gera descricao de SCN
-                self.obj_dict[nome].normalize(mat)         #normaliza objeto criado
-                self.ponto_clipping(self.obj_dict[nome])
-                self.redesenhar()
-                self.msg_label.config(text="Ponto adicionado!", foreground="SpringGreen2")
-            else:
-                self.msg_label.config(text="Nome já existente!", foreground="red")
-        except:
-            self.msg_label.config(text="Apenas números!", foreground="red")
 
-    def criar_linha(self):
-        try:
-            nome = self.nome_obj2.get()
-            if not (nome in self.obj_dict.keys()):                 #verifica se nao tem o objeto com mesmo nome
-                x1 = float(self.entrada_x1.get())                  #cuida se x e y nao recebeu entrada de string
-                y1 = float(self.entrada_y1.get())
-
-                x2 = float(self.entrada_x2.get())
-                y2 = float(self.entrada_y2.get())
-
-                self.object_list.insert(END, nome)                  #insere o nome do objeto na listbox
-                self.obj_dict[nome] = Line(nome, [(x1,y1),(x2,y2)]) #adiciona a linha no dicionario de objetos, chave = nome
-                mat = self.gerarDescricaoSCN()                      #gerar descricao de SCN
-                self.obj_dict[nome].normalize(mat)                  #normaliza objeto criado
-                print("Criando e passando por line_clip")
-                self.line_clip(self.obj_dict[nome])
-                print("line_clip efetuado na criação, indo desenhar")
-                self.redesenhar()
-                self.msg_label2.config(text="Linha adicionada!", foreground="SpringGreen2")
-            else:
-                self.msg_label2.config(text="Nome já existente!", foreground="red")
-        except:
-            self.msg_label2.config(text="Apenas números!", foreground="red")
-
-    #enquanto usuario nao concluir, vai adicionado pontos para criacao de poligono
-    def add_ponto_pol(self):
-        try:
-            x = float(self.entrada_x3.get()) #cuida que x e y nao recebeu entrada de string
-            y = float(self.entrada_y3.get())
-            self.pontos_pol.append((x,y))
-            self.msg_label3.config(text="Ponto adicionado!", foreground="SpringGreen2")
-        except:
-            self.msg_label3.config(text="Apenas números!", foreground="red")
-
-    #quando usuario concluir adicao de pontos, vai criar poligono
-    def criar_poligono(self):
-        nome = self.nome_obj3.get()
-        if not (nome in self.obj_dict.keys()):          #verifica se nao tem o objeto com mesmo nome
-            self.object_list.insert(END, nome)
-            pontos = self.pontos_pol[:]                 #copia a lista
-            self.obj_dict[nome] = Polygon(nome, pontos)
-            self.pontos_pol = []
-            mat = self.gerarDescricaoSCN()              #gerar descricao de SCN
-            self.obj_dict[nome].normalize(mat)          #normaliza objeto criado
-            self.weiler_atherton(self.obj_dict[nome])
-            self.redesenhar()
-            self.msg_label3.config(text="Polígono criado!", foreground="SpringGreen2")
-        else:
-            self.msg_label3.config(text="Nome já existente!", foreground="red")
-
-    def criar_curva(self):
-        nome = self.nome_obj4.get()
-        if not (nome in self.obj_dict.keys()):          #verifica se nao tem o objeto com mesmo nome
-            self.object_list.insert(END, nome)
-            pontos = self.pontos_curva[:]                 #copia a lista
-            mat = self.gerarDescricaoSCN()              #gerar descricao de SCN
-            self.obj_dict[nome] = CurveB(nome, pontos, norm=mat)    #curva já tem seus pontos normalizados na criação
-            self.pontos_curva = []
-            #self.obj_dict[nome].normalize(mat)          #normaliza objeto criado
-            self.curv_clipping(self.obj_dict[nome])
-            self.redesenhar()
-            self.msg_label4.config(text="Curva criada!", foreground="SpringGreen2")
-        else:
-            self.msg_label4.config(text="Nome já existente!", foreground="red")
-
-    def add_pontos_curv(self):
-        try:
-            adicionar = False
-            x1 = float(self.entradaCX1.get()) #cuida que x e y nao recebeu entrada de string
-            y1 = float(self.entradaCY1.get())
-            x2 = float(self.entradaCX2.get()) #cuida que x e y nao recebeu entrada de string
-            y2 = float(self.entradaCY2.get())
-            x3 = float(self.entradaCX3.get()) #cuida que x e y nao recebeu entrada de string
-            y3 = float(self.entradaCY3.get())
-            if not self.pontos_curva:
-                x4 = float(self.entradaCX4.get()) #cuida que x e y nao recebeu entrada de string
-                y4 = float(self.entradaCY4.get())
-                adicionar = True
-            self.pontos_curva.append((x1,y1))
-            self.pontos_curva.append((x2,y2))
-            self.pontos_curva.append((x3,y3))
-            if adicionar:
-                self.pontos_curva.append((x4,y4))
-
-            self.levantar_frame(self.empty_frame, zerar=False)
-            self.msg_label4.config(text="Ponto adicionado!", foreground="SpringGreen2")
-        except:
-            self.msg_label4.config(text="Apenas números!", foreground="red")
-
-    def apagar_objeto(self):
-        #verifica linha onde cursor selecionou
-        for linha in self.object_list.curselection():  
-            #apaga do dicionario e do list box esse objeto selecionado
-            del self.obj_dict[self.object_list.get(linha)] 
-            self.object_list.delete(linha)
-        self.redesenhar()
-
-    #utilizado para criacao de objetos podendo seleciona varias frames para preencher
-    def levantar_frame(self, frame:Frame, frame2:Frame = None, zerar = True):
-        if zerar:
-            self.pontos_pol = [] #Ao trocar para outra entrada perde-se o progresso
-            self.pontos_curva = [] 
-        frame.tkraise()
-        if frame2:
-            frame2.tkraise()
-
-    def criar_objeto(self):
-        self.pop = Toplevel(self.main_window)
-        self.pop.geometry("300x300+450+200")
-        self.pop.title("Create New Object")
-        self.pop.config(bg="gray")
-
-        #Botoes para selecionar qual objeto adicionar
-        Button(self.pop, text="Point", width=5, command=lambda:self.levantar_frame(self.point_frame)).place(x=10, y=10)
-        Button(self.pop, text="Line", width=5, command=lambda:self.levantar_frame(self.line_frame)).place(x=10, y=40)
-        Button(self.pop, text="Polygon", width=5, command=lambda:self.levantar_frame(self.polygon_frame)).place(x=10, y=70)
-        Button(self.pop, text="Curva", width=5, command=lambda:self.levantar_frame(self.curve_frame, self.p4_frame)).place(x=10,y=100)
-
-        #frame ponto pop up
-        self.point_frame = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=200, height=300)
-        self.point_frame.place(x=100, y=0) 
-        Label(self.point_frame, bg="gray", text="Nome :").place(x=5, y=5)
-        self.nome_obj = Entry(self.point_frame, width=12)
-        self.nome_obj.place(x=52, y=5)
-        Label(self.point_frame, bg="gray", text="X :").place(x=5, y=50)
-        self.entrada_x = Entry(self.point_frame, width=5)
-        self.entrada_x.place(x=25, y=50)
-        Label(self.point_frame, bg="gray", text="Y :").place(x=100, y=50)
-        self.entrada_y = Entry(self.point_frame, width=5)
-        self.entrada_y.place(x=120, y=50)
-        Button(self.point_frame, text="CONCLUIR", command=lambda:self.criar_ponto()).place(x=50, y=100)
-        self.msg_label = Label(self.point_frame, text="", bg="gray")
-        self.msg_label.place(x=10, y=150)
-
-        #frame linha pop up
-        self.line_frame = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=200, height=300)
-        self.line_frame.place(x=100, y=0) 
-        Label(self.line_frame, bg="gray", text="Nome :").place(x=2, y=5)
-        self.nome_obj2 = Entry(self.line_frame, width=12)
-        self.nome_obj2.place(x=50, y=5)
-        Label(self.line_frame, bg="gray", text="X1 :").place(x=2, y=50)
-        self.entrada_x1 = Entry(self.line_frame, width=5)
-        self.entrada_x1.place(x=30, y=50)
-        Label(self.line_frame, bg="gray", text="Y1 :").place(x=97, y=50)
-        self.entrada_y1 = Entry(self.line_frame, width=5)
-        self.entrada_y1.place(x=125, y=50)
-        Label(self.line_frame, bg="gray", text="X2 :").place(x=2, y=80)
-        self.entrada_x2 = Entry(self.line_frame, width=5)
-        self.entrada_x2.place(x=30, y=80)
-        Label(self.line_frame, bg="gray", text="Y2 :").place(x=97, y=80)
-        self.entrada_y2 = Entry(self.line_frame, width=5)
-        self.entrada_y2.place(x=125, y=80)
-        Button(self.line_frame, text="CONCLUIR", command=lambda:self.criar_linha()).place(x=50, y=150)
-        self.msg_label2 = Label(self.line_frame, text="", bg="gray")
-        self.msg_label2.place(x=10, y=180)
-
-        #frame poligono pop up
-        self.polygon_frame = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=200, height=300)
-        self.polygon_frame.place(x=100, y=0) 
-        Label(self.polygon_frame, bg="gray", text="Nome :").place(x=5, y=5)
-        self.nome_obj3 = Entry(self.polygon_frame, width=12)
-        self.nome_obj3.place(x=52, y=5)
-        Label(self.polygon_frame, bg="gray", text="X :").place(x=5, y=50)
-        self.entrada_x3 = Entry(self.polygon_frame, width=5)
-        self.entrada_x3.place(x=25, y=50)
-        Label(self.polygon_frame, bg="gray", text="Y :").place(x=100, y=50)
-        self.entrada_y3 = Entry(self.polygon_frame, width=5)
-        self.entrada_y3.place(x=120, y=50)
-        Button(self.polygon_frame, text="ADICIONAR", command=lambda:self.add_ponto_pol()).place(x=0, y=100)
-        Button(self.polygon_frame, text="CONCLUIR", command=lambda:self.criar_poligono()).place(x=100, y=100)
-        self.msg_label3 = Label(self.polygon_frame, text="", bg="gray")
-        self.msg_label3.place(x=10, y=150)
-
-        #frame curva pop up
-        self.curve_frame = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=200, height=300)
-        self.curve_frame.place(x=100, y=0)
-        Label(self.curve_frame, bg="gray", text="Nome :").place(x=2, y=5)
-        self.nome_obj4 = Entry(self.curve_frame, width=12)
-        self.nome_obj4.place(x=50, y=5)
-        #ponto 1
-        Label(self.curve_frame, bg="gray", text="X1:").place(x=2, y=50)
-        self.entradaCX1 = Entry(self.curve_frame, width=5)
-        self.entradaCX1.place(x=30, y=50)
-        Label(self.curve_frame, bg="gray", text="Y1:").place(x=100, y=50)
-        self.entradaCY1 = Entry(self.curve_frame, width=5)
-        self.entradaCY1.place(x=125, y=50)
-        #ponto 2
-        Label(self.curve_frame, bg="gray", text="X2:").place(x=2, y=80)
-        self.entradaCX2 = Entry(self.curve_frame, width=5)
-        self.entradaCX2.place(x=30, y=80)
-        Label(self.curve_frame, bg="gray", text="Y2:").place(x=100, y=80)
-        self.entradaCY2 = Entry(self.curve_frame, width=5)
-        self.entradaCY2.place(x=125, y=80)
-        #ponto 3
-        Label(self.curve_frame, bg="gray", text="X3:").place(x=2, y=110)
-        self.entradaCX3 = Entry(self.curve_frame, width=5)
-        self.entradaCX3.place(x=30, y=110)
-        Label(self.curve_frame, bg="gray", text="Y3:").place(x=100, y=110)
-        self.entradaCY3 = Entry(self.curve_frame, width=5)
-        self.entradaCY3.place(x=125, y=110)
-        #ponto 4
-        self.empty_frame = Frame(self.curve_frame, bg="gray", width=200, height=30) #Frame vazio que sera levantado após a primeira inserção de pontos
-        self.empty_frame.place(x=0, y=140)
-        #frame inicial para 4 pontos de entrada
-        self.p4_frame = Frame(self.curve_frame, bg="gray", width=200, height=30)
-        self.p4_frame.place(x=0, y=140)
-        Label(self.p4_frame, bg="gray", text="X4:").place(x=2, y=0)
-        self.entradaCX4 = Entry(self.p4_frame, width=5)
-        self.entradaCX4.place(x=30, y=0)
-        Label(self.p4_frame, bg="gray", text="Y4:").place(x=100, y=0)
-        self.entradaCY4 = Entry(self.p4_frame, width=5)
-        self.entradaCY4.place(x=125, y=0)
-
-        
-        Button(self.curve_frame, text="ADICIONAR", command=lambda:self.add_pontos_curv()).place(x=0, y=185)
-        Button(self.curve_frame, text="CONCLUIR", command=lambda:self.criar_curva()).place(x=100, y=185)
-        self.msg_label4 = Label(self.curve_frame, text="", bg="gray")
-        self.msg_label4.place(x=10, y=215)
-
-        #Janela pop-up inicial
-        self.pop_padrao = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=200, height=300)
-        self.pop_padrao.place(x=100, y=0) 
-        Label(self.pop_padrao, text="Selecione objeto que \n quer desenhar!", bg="gray").place(x=30, y=120)
 
 
     def transformacao(self): #trata as transformações dos objetos
@@ -714,9 +479,18 @@ class Interface():
     def fim_trans(self):
         self.mat = self.calcular_mat()      #Calcula a matriz de transições
         self.historico.delete(0, END)
-        self.obj_dict[self.obj_trans].moverXY(self.mat) #Proprio objeto aplica a matriz conforme sua especificidade
+        obj = self.obj_dict[self.obj_trans]
+        obj.moverXY(self.mat) #Proprio objeto aplica a matriz conforme sua especificidade
         mat = self.gerarDescricaoSCN()
-        self.obj_dict[self.obj_trans].normalize(mat)
+        obj.normalize(mat)
+        if (obj.tipo == 1):
+            self.ponto_clipping(obj)
+        elif (obj.tipo == 2):
+            self.line_clip(obj)
+        elif (obj.tipo == 3):
+            self.weiler_atherton(obj)
+        elif (obj.tipo == 5):
+            self.curv_clipping(obj)
         self.redesenhar()
 
     def cor_popup(self):
@@ -777,13 +551,14 @@ class Interface():
         for obj in self.obj_dict.values():
             obj.normalize(mat)
             if (obj.tipo == 1):
-                self.ponto_clipping(obj)
+                obj.ponto_clipping()
             elif (obj.tipo == 2):
-                self.line_clip(obj)
+                var = self.clip_selection.get()
+                obj.line_clip(var)
             elif (obj.tipo == 3):
-                self.weiler_atherton(obj)
+                obj.weiler_atherton()
             elif (obj.tipo == 5):
-                self.curv_clipping(obj)
+                obj.curv_clipping()
         self.eixoY.normalize(mat)
         self.eixoX.normalize(mat)
 
@@ -794,212 +569,7 @@ class Interface():
         self.normalizar()
         self.redesenhar()
 
-    def ponto_clipping(self, ponto: Point):
-        if (ponto.coordNorm[0][0] < -1 or ponto.coordNorm[0][0] > 1 or
-            ponto.coordNorm[0][1] < -1 or ponto.coordNorm[0][1] > 1):
-            ponto.desenhavel = False
-        else:
-            ponto.desenhavel = True
-
-    def line_clip(self, linha: Line):
-        var = self.clip_selection.get()
-        if (var == "l"):
-            self.liang_barsky(linha)
-        else: #(var == "c"):
-            self.cohen_sutherland(linha)
-            
-
-    def cohen_sutherland(self, linha: Line): #[cima, baixo, direita, esquerda]
-        p1 = self.codigoPonto(linha.coordNorm[0])
-        p2 = self.codigoPonto(linha.coordNorm[1])
-
-        if p1 == 0 and p2 == 0:
-            linha.desenhavel = True
-            linha.coordClip = linha.coordNorm
-        elif p1 & p2 != 0:
-            linha.desenhavel = False
-        else:
-            clip =[]
-            
-            if (linha.coordNorm[0][0] == linha.coordNorm[1][0]):    #No calculo do coeficiente ocorre uma divisão por 0
-                for i in range(0,2): #para cada ponto                precisamos tratar a parte
-                    if linha.coordNorm[i][1] > 1:       # se y passa o topo
-                        clip.append((linha.coordNorm[i][0], 1))
-                    elif linha.coordNorm[i][1] < -1:    # se y passa o baixo
-                        clip.append((linha.coordNorm[i][0], -1))
-                    else:
-                        clip.append(linha.coordNorm[i])
-                
-                linha.desenhavel = True
-                linha.coordClip = clip
-            else:
-                p = [p1,p2]                   
-                m = ((linha.coordNorm[1][1] - linha.coordNorm[0][1]) / (linha.coordNorm[1][0] - linha.coordNorm[0][0]))
-                for i in range(2):
-                    if p[i] == 0: #está no centro
-
-                        clip.append(linha.coordNorm[i])
-                        
-                    else:
-                        var = self.coh_sut_inter(linha.coordNorm[i], p[i], m)
-                        if var == False:
-                            linha.desenhavel = False
-                            return
-                        else:
-                            clip.append(var)
-                
-                linha.desenhavel = True
-                linha.coordClip = clip
-                
-                    
-
-
-    def coh_sut_inter(self, ponto, reg_code, m):  #m = coeficiente angular
-        if reg_code & 0b1000 != 0: #cima 
-            x = ponto[0] + (1/m) * (1 - ponto[1])
-            if x > -1 or x < 1:
-                return (x, 1)
-        if reg_code & 0b100 != 0: #baixo
-            x = ponto[0] + (1/m) * (-1 - ponto[1])
-            if x > -1 or x < 1:
-                return (x, -1)
-
-        if reg_code & 0b10 != 0: #direita
-            y = m*(1 - ponto[0]) + ponto[1]
-            if y > -1 or y < 1:
-                return (1, y)
-        if reg_code & 0b1 != 0: #esquerda 
-            y = m*(-1 - ponto[0]) + ponto[1]
-            if y > -1 and y < 1:
-              return (-1, y)
-        
-        return False #caso nao haja interseccao dentro do limite
-
-    def codigoPonto(self, ponto):
-        codigo = 0b00
-        if ponto[1] > 1:
-            codigo = codigo | 0b10
-        elif ponto[1] < -1:
-            codigo = codigo | 0b01
-        else:
-            codigo = codigo | 0b00
-        
-        codigo = codigo << 2
-        if ponto[0] > 1:
-            codigo = codigo | 0b10
-        elif ponto[0] < -1:
-            codigo = codigo | 0b01
-        else:
-            codigo = codigo | 0b00
-        
-        return codigo
-
-        
-    def liang_barsky(self, linha: Line):
-        p = []
-        q = []
-        
-        p.append(-(linha.coordNorm[1][0]-linha.coordNorm[0][0])) #-delta x
-        p.append(linha.coordNorm[1][0]-linha.coordNorm[0][0])    #delta x
-        p.append(-(linha.coordNorm[1][1]-linha.coordNorm[0][1])) #-delta y
-        p.append(linha.coordNorm[1][1]-linha.coordNorm[0][1])    #delta y
-
-        q.append(linha.coordNorm[0][0]-(-1))        #x1-xwmin
-        q.append(1-linha.coordNorm[0][0])           #xwmax-x1
-        q.append(linha.coordNorm[0][1]-(-1))        #y1-ywmin
-        q.append(1-linha.coordNorm[0][1])           #ywmax-y1
-
-        neg = []
-        pos = []
-        for i in range(len(p)):
-            if p[i] < 0:           #se negativo
-                neg.append(i)
-            elif p[i] > 0:         #se posiivo
-                pos.append(i)
-            else:                  #se da 0
-                if q[i] < 0:       #precisa verificar q[i]
-                    linha.desenhavel = False
-                    return
-        
-        zeta1 = 0
-        for i in neg:
-            r = q[i]/p[i]
-            zeta1 = max(zeta1,r)
-
-        zeta2 = 1
-        for i in pos:
-            r= q[i]/p[i]
-            zeta2 = min(zeta2, r)
-
-        if zeta1 > zeta2:
-            linha.desenhavel = False
-            return
-
-        if zeta1 != 0:
-            x1 = linha.coordNorm[0][0] + zeta1*p[1]
-            y1 = linha.coordNorm[0][1] + zeta1*p[3]
-            linha.desenhavel = True 
-            linha.coordClip = [(x1,y1)]
-        else:
-            x1 = linha.coordNorm[0][0]
-            y1 = linha.coordNorm[0][1]
-            linha.desenhavel = True
-            linha.coordClip = [(x1,y1)]
-        
-        if zeta2 != 1:
-            x2 = linha.coordNorm[0][0] + zeta2*p[1]
-            y2 = linha.coordNorm[0][1] + zeta2*p[3]
-            linha.desenhavel = True
-            linha.coordClip = [linha.coordClip[0], (x2,y2)]
-        else:
-            x1 = linha.coordNorm[1][0]
-            y1 = linha.coordNorm[1][1]
-            linha.desenhavel = True
-            linha.coordClip = [linha.coordClip[0], (x1,y1)]
-
-    def weiler_atherton(self, pol: Polygon):                #Inspirado em weiler-atherton, mas refizemos algumas partes conforme consideramos mais simples
-        coord = []                                          #Andamos em cada ponto avaliando 
-        for i in range(len(pol.coordNorm)):
-            p1 = pol.coordNorm[i-1]
-            p2 = pol.coordNorm[i]
-            if (p1[0] <= 1 and p1[0] >= -1 and p1[1] <= 1 and p1[1] >= -1 and #Se p1 está na window
-                p2[0] <= 1 and p2[0] >= -1 and p2[1] <= 1 and p2[1] >= -1):   #Se p2 está na window
-                if (not coord) or coord[-1] != p1 :                           #Se nao eh primeiro da lista ou se ultimo nao eh p1 (cuidar pra nao incluir de novo)
-                    coord.append( (p1, False) )   
-                coord.append((p2, False) )
-            elif (p1[0] <= 1 and p1[0] >= -1 and p1[1] <= 1 and p1[1] >= -1): #Se apenas p1 está na window
-                if (not coord) or coord[-1] != p1:                            #Se nao eh primeiro da lista ou se ultimo nao eh p1 (cuidar pra nao incluir de novo)
-                    coord.append((p1, False))                                 #Logo, p2 tem intersecção
-                l = Line("_________", [p1,p2])
-                l.coordNorm = [p1, p2]
-                self.liang_barsky(l)
-                coord.append((l.coordClip[1], "s"))                           # "s" indica que eh sainte
-            elif (p2[0] <= 1 and p2[0] >= -1 and p2[1] <= 1 and p2[1] >= -1): #Se apenas p2 está na window
-                l = Line("_________", [p1,p2])
-                l.coordNorm = [p1, p2]
-                self.liang_barsky(l)
-                if (not coord) or coord[-1] != l.coordClip[0]:                #Se nao eh primeiro da lista ou se ultimo nao eh mesma interseccao 
-                    coord.append((l.coordClip[0], "e"))                       # "e" indica que eh entrante
-                coord.append((p2, False))                                     #Logo, p1 tem intersecção
-        
-            else:                                                             #Se nenhum deles está dentro da windo
-                l = Line("_________", [p1,p2])
-                l.coordNorm = [p1, p2]
-                self.liang_barsky(l)
-                if l.desenhavel:                                              #Caso tenha intersecção
-                    if (not coord) or (coord[-1] != l.coordClip[0]):          #Se nao eh primeiro da lista ou se ultimo nao eh mesma interseccao 
-                        coord.append( (l.coordClip[0], "e") )                 # "e" indica que eh entrante
-                    coord.append( (l.coordClip[1], "s") )                     # "s" indica que eh sainte
-                else:
-                    coord.append(())
-
-        pol.coordClip = coord
-
-
-    def curv_clipping(self, curv):
-        print(f"len curvLinhas {len(curv.linhas)}")
-        for l in curv.linhas:
-            self.line_clip(l)
+    
 
     def importar(self):
         objetos = self.obj.open_file()

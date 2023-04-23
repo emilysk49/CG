@@ -112,6 +112,17 @@ class Curve(ObjetoGrafico):
         for l in self.linhas:
             l.line_clip("l")
     
-    def export(self):
-        print("Inacabada para curvas, pensando em como fazer :)")
-        pass
+    def export(self, mat: np.matrix):
+        exp = {}
+        exp["nome"] = self.nome 
+        mat = np.linalg.inv(mat)
+        coord = []
+        for p in self.coordCurv:
+            ponto = [p[0],p[1],1]
+            result = np.matmul(ponto, mat)
+            coord.append((result.item(0),result.item(1)))
+        exp["coord"] = coord
+        exp["cor"] = self.cor
+        exp["tipo"] = self.tipo
+       
+        return exp

@@ -134,12 +134,21 @@ class ObjHandler:
                     f.write("p -1\n")
                 elif (tipo == 2):
                     f.write("l -2 -1\n")
-                else:
+                elif (tipo == 3):
+                    print("poligono")
                     f.write("l ")
                     for i in range(len(coord)):
                         num = (i*-1)-1
                         f.write(f"{num} ")
                     f.write("\n")
+                else:
+                    for i in range(len(coord),1,-1):
+                        num = (i*-1)
+                        if i != len(coord):
+                            nome = f"LINECURVE{i+1}"
+                            f.write(f"o {nome}\n")
+                            f.write(f"usemtl {cor}\n")
+                        f.write(f"l {num} {num+1}\n")
 
         with open(file_name+".mtl", "a") as f:
             for c in colors:

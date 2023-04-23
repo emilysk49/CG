@@ -134,7 +134,6 @@ class Line(ObjetoGrafico):
                         
                     else:
                         var = self.coh_sut_inter(self.coordNorm[i-1], p[i], m)
-                        print(f"RC: [{self.coordNorm[i-1]},{p[i]}]")
                         if var == False:
                             self.desenhavel = False
                             return

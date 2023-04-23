@@ -484,13 +484,14 @@ class Interface():
         mat = self.gerarDescricaoSCN()
         obj.normalize(mat)
         if (obj.tipo == 1):
-            self.ponto_clipping(obj)
+            obj.ponto_clipping()
         elif (obj.tipo == 2):
-            self.line_clip(obj)
+            var = self.clip_selection.get()
+            obj.line_clip(var)
         elif (obj.tipo == 3):
-            self.weiler_atherton(obj)
+            obj.weiler_atherton()
         elif (obj.tipo == 5):
-            self.curv_clipping(obj)
+            obj.curv_clipping()
         self.redesenhar()
 
     def cor_popup(self):
@@ -572,6 +573,7 @@ class Interface():
     
 
     def importar(self):
+        var = self.clip_selection.get()
         objetos = self.obj.open_file()
 
         for o in objetos:
@@ -581,19 +583,23 @@ class Interface():
             self.obj_dict[o.nome].normalize(mat)         #normaliza objeto criado
         
             if (o.tipo == 1):
-                self.ponto_clipping(self.obj_dict[o.nome])
+                self.obj_dict[o.nome].ponto_clipping()
             elif (o.tipo == 2):
-                self.line_clip(self.obj_dict[o.nome])
+                self.obj_dict[o.nome].line_clip(var)
             elif (o.tipo == 3):
-                self.weiler_atherton(self.obj_dict[o.nome])
-            elif (o.tipo == 5):
-                self.curv_clipping(self.obj_dict[o.nome])
+                self.obj_dict[o.nome].weiler_atherton()
+            #elif (o.tipo == 5):
+            #    self.obj_dict[o.nome].line_clip(var)
         self.redesenhar()
 
     def exportar(self):
         list_obj = []
         for obj in self.obj_dict.values():
-            list_obj.append(obj.export())               #Cada objeto prepara uma dicionário próprio
+            if obj.tipo == 5:
+                mat = self.gerarDescricaoSCN()
+                list_obj.append(obj.export(mat))
+            else:
+                list_obj.append(obj.export())               #Cada objeto prepara uma dicionário próprio
         self.obj.write_file(list_obj)                   #para auxiliar na exportação
 
 

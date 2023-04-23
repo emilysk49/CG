@@ -133,7 +133,8 @@ class Line(ObjetoGrafico):
                         clip.append(self.coordNorm[i])
                         
                     else:
-                        var = self.coh_sut_inter(self.coordNorm[i], p[i], m)
+                        var = self.coh_sut_inter(self.coordNorm[i-1], p[i], m)
+                        print(f"RC: [{self.coordNorm[i-1]},{p[i]}]")
                         if var == False:
                             self.desenhavel = False
                             return
@@ -149,16 +150,16 @@ class Line(ObjetoGrafico):
     def coh_sut_inter(self, ponto, reg_code, m):  #m = coeficiente angular
         if reg_code & 0b1000 != 0: #cima 
             x = ponto[0] + (1/m) * (1 - ponto[1])
-            if x > -1 or x < 1:
+            if x > -1 and x < 1:
                 return (x, 1)
         if reg_code & 0b100 != 0: #baixo
             x = ponto[0] + (1/m) * (-1 - ponto[1])
-            if x > -1 or x < 1:
+            if x > -1 and x < 1:
                 return (x, -1)
 
         if reg_code & 0b10 != 0: #direita
             y = m*(1 - ponto[0]) + ponto[1]
-            if y > -1 or y < 1:
+            if y > -1 and y < 1:
                 return (1, y)
         if reg_code & 0b1 != 0: #esquerda 
             y = m*(-1 - ponto[0]) + ponto[1]

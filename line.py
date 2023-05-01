@@ -4,18 +4,19 @@ import numpy as np
 class Line(ObjetoGrafico):
     #coordenadas = [()]
     def __init__(self, nome, coordenadas):
-        super().__init__(nome, Tipo.LINE.value, coordenadas)
+        coordenadasM = coordenadas   #feito para tratar o caso do poligono que cria as linhas apenas em 2D para desenhá-las
+        if len(coordenadas[0]) == 2: # se nao tiver z -> para funcionar clipping adicionamos uma média (para não alterar seu centro) como Z (que não será avaliado nunca)
+            media1 = (coordenadas[0][0] + coordenadas[0][1])/2
+            media2 = (coordenadas[1][0] + coordenadas[1][1])/2
+            coordenadasM = [(coordenadas[0][0], coordenadas[0][1], media1),(coordenadas[1][0], coordenadas[1][1], media2 )]
+        super().__init__(nome, Tipo.LINE.value, coordenadasM)
         self.cor = "#0000ff"
         self.desenhavel = bool
         self.coordClip = []
 
-    def moverXY(self, mat):
-        self.coordenadas = self.mulPontoMat(mat)
-
-        self.calc_centro()
 
     def normalize(self, mat: np.matrix):
-        self.coordNorm = self.mulPontoMat(mat)
+        self.coordNorm = self.mulPontoMat2D(mat)
 
 
     def liang_barsky(self):
@@ -102,6 +103,7 @@ class Line(ObjetoGrafico):
 
 
     def cohen_sutherland(self): #[cima, baixo, direita, esquerda]
+        print(self.coordNorm)
         p1 = self.codigoPonto(self.coordNorm[0])
         p2 = self.codigoPonto(self.coordNorm[1])
 

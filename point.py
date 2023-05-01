@@ -8,12 +8,8 @@ class Point(ObjetoGrafico):
         self.cor = "#ff0000"
         self.desenhavel = bool
 
-    def moverXY(self, mat):
-        self.coordenadas = self.mulPontoMat(mat)
-        self.calc_centro()
-
     def normalize(self, mat: np.matrix):
-        self.coordNorm = self.mulPontoMat(mat)
+        self.coordNorm = self.mulPontoMat2D(mat)
 
     def ponto_clipping(self):
         if (self.coordNorm[0][0] < -1 or self.coordNorm[0][0] > 1 or

@@ -8,6 +8,8 @@ class Tipo(Enum):
     POLYGON = 3
     WIN = 4
     CURVE = 5
+    ARAME = 6
+
 
 class ObjetoGrafico(ABC):
 
@@ -18,7 +20,10 @@ class ObjetoGrafico(ABC):
         self._coordenadas = coordenadas
         self.centroX = float()
         self.centroY = float()
+        self.centroZ = float()
+        self.centro = float()
         self.coordNorm = list()
+        self.coordHomo = list()
         self._cor = str
         self.calc_centro()
     
@@ -54,28 +59,47 @@ class ObjetoGrafico(ABC):
 
     def calc_centro(self):
         n = len(self._coordenadas)
-        x, y = 0, 0
+        x, y, z = 0, 0, 0
         for i in range (0, n):
             x += self._coordenadas[i][0]
             y += self._coordenadas[i][1]
+            z += self._coordenadas[i][2]
         self.centroX = x/n
         self.centroY = y/n
+        self.centroZ = z/n
+        self.centro = (self.centroX, self.centroY, self.centroZ)
     
-    def moverXY(self, mat: np.matrix):
-        pass
+    def moverXY(self, mat: np.matrix, homo=False):
+        if homo:
+            self.coordHomo = self.mulPontoMat3D(mat)
+            return
+        self.coordenadas = self.mulPontoMat3D(mat)
+        self.calc_centro()
 
     def normalize(self, mat: np.matrix):
         pass
 
-    def mulPontoMat(self, mat):
+    def mulPontoMat2D(self, mat):
         resposta = []
-        for i in self.coordenadas:
+        for i in self.coordHomo:
             x = i[0]
             y = i[1]
             ponto = [x,y,1]
             result = np.matmul(ponto, mat)
             resposta.append((result.item(0),result.item(1)))
         return resposta
+    
+    def mulPontoMat3D(self, mat):
+        resposta = []
+        for i in self.coordenadas:
+            x = i[0]
+            y = i[1]
+            z = i[2]
+            ponto = [x,y,z,1]
+            result = np.matmul(ponto, mat)
+            resposta.append((result.item(0),result.item(1),result.item(2)))
+        return resposta
+
 
     def export(self):
         exp = {}

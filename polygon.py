@@ -9,12 +9,9 @@ class Polygon(ObjetoGrafico):
         self.cor = "#7600d0"
         self.coordClip = []
 
-    def moverXY(self, mat):
-        self.coordenadas = self.mulPontoMat(mat)
-        self.calc_centro()
             
     def normalize(self, mat: np.matrix):
-        self.coordNorm = self.mulPontoMat(mat)
+        self.coordNorm = self.mulPontoMat2D(mat)
 
     def weiler_atherton(self):                #Inspirado em weiler-atherton, mas refizemos algumas partes conforme consideramos mais simples
         coord = []                                          #Andamos em cada ponto avaliando 

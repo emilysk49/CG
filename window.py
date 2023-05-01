@@ -2,46 +2,70 @@ from abstract import ObjetoGrafico, Tipo
 import numpy as np
 
 class Window(ObjetoGrafico):
-    #coordenadas = [()]
-    def __init__(self, nome, coordenadas=[(-11,-11), (11,-11), (11,11), (-11,11)]):
+    #Caso defina coordenadas da window (RETANGULAR) por favor siga a ordem das coordenadas: primeira -> Baixo esquerda, 
+                                                                                            #segunda -> baixo direita, 
+                                                                                           #terceira -> cima direita, 
+                                                                                             #quarta -> cima esquerda
+    def __init__(self, nome, coordenadas=[(-11,-11,0), (11,-11,0), (11,11,0), (-11,11,0)]):
         super().__init__(nome, Tipo.WIN.value, coordenadas)
-        self.BE = (-11, -11) #min
-        self.BD = (11, -11)
-        self.CD = (11, 11) #max
-        self.CE = (-11, 11)
+        self.BE = coordenadas[0]#(-11, -11, 0) #min
+        self.BD = coordenadas[1]#(11, -11, 0)
+        self.CD = coordenadas[2]#(11, 11, 0) #max
+        self.CE = coordenadas[3]#(-11, 11, 0)
         self.cor = "#ffffff"
         self.coordNorm = [(-1,-1), (1,-1), (1,1), (-1,1)] #BE BD CD CE
-        self.angulo = 0
+        self.angulo = float()
+        self.contagem = 0
+        self.centroHomo = list()
+        self.centroXHomo = float()
+        self.centroYHomo = float()
+        self.centroZHomo = float()
+        self.escalaX = float()
+        self.escalaY = float()
 
-        self.max_min()
 
-    def moverXY(self, mat):
-        self.coordenadas = self.mulPontoMat(mat)
-        self.BE = self.coordenadas[0]
-        self.BD = self.coordenadas[1]
-        self.CD = self.coordenadas[2]
-        self.CE = self.coordenadas[3]
-        self.calc_centro()
+    def moverXY(self, mat, homo=False):
+        super().moverXY(mat, homo)
+        if not homo:
+            self.BE = self.coordenadas[0]
+            self.BD = self.coordenadas[1]
+            self.CD = self.coordenadas[2]
+            self.CE = self.coordenadas[3]
+            self.calc_centro()
 
-        self.max_min()
-        
+        self.calc_centro_homo()
 
             
     def normalize(self, mat: np.matrix):
-        self.coordNorm = self.mulPontoMat(mat)
+        self.coordNorm = self.mulPontoMat2D(mat)
 
 
-    def max_min(self):
-        self.xmax = self.coordenadas[0][0]
-        self.xmin = self.coordenadas[0][0]
-        self.ymax = self.coordenadas[0][1]
-        self.ymin = self.coordenadas[0][1]
-        for i in self.coordenadas:
-            if i[0] > self.xmax:
-                self.xmax = i[0]
-            if i[0] < self.xmin:
-                self.xmin = i[0]
-            if i[1] > self.ymax:
-                self.ymax = i[1]
-            if i[1] < self.ymin:
-                self.ymin = i[1]
+    def calc_angulo(self):
+        px = (self.coordHomo[2][0] + self.coordHomo[3][0]) /2 #ponto central de cima x
+        py = (self.coordHomo[2][1] + self.coordHomo[3][1]) /2 #ponto central de cima y
+        self.vup = (px-self.centroXHomo, py-self.centroYHomo)
+        y = [0,1]
+        
+        produto_escalar = np.dot(self.vup, y)
+        
+        norma_cima = np.linalg.norm(self.vup)
+        norma_y = np.linalg.norm(y)
+
+        self.angulo = np.degrees(np.arccos(produto_escalar / (norma_cima * norma_y)))
+
+        if px < 0:
+            self.angulo = 360 - self.angulo
+
+            
+
+    def calc_centro_homo(self):
+        n = len(self.coordHomo)
+        x, y, z = 0, 0, 0
+        for i in range (0, n):
+            x += self.coordHomo[i][0]
+            y += self.coordHomo[i][1]
+            z += self.coordHomo[i][2]
+        self.centroXHomo = x/n
+        self.centroYHomo = y/n
+        self.centroZHomo = z/n
+        self.centroHomo = (self.centroXHomo, self.centroYHomo, self.centroZHomo)

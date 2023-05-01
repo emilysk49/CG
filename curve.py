@@ -15,22 +15,9 @@ class Curve(ObjetoGrafico):
         self.tipoCurva = tipo
         self.normalize(norm)
 
-    def mulPontoMat(self, mat):
-        resposta = []
-        for i in self.coordenadas:
-            x = i[0]
-            y = i[1]
-            ponto = [x,y,1]
-            result = np.matmul(ponto, mat)
-            resposta.append((result.item(0),result.item(1)))
-        return resposta
 
-    def moverXY(self, mat):
-        self.coordenadas = self.mulPontoMat(mat)
-        self.calc_centro()
-            
     def normalize(self, mat: np.matrix):
-        self.coordNorm = self.mulPontoMat(mat)
+        self.coordNorm = self.mulPontoMat2D(mat)
         if self.tipoCurva == "B":
             self.bezier()
         else:               #self.tipo == "s" De spline

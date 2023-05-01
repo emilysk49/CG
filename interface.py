@@ -7,8 +7,10 @@ from line import Line
 from polygon import Polygon
 from window import Window
 from curve import Curve
+from arame import Arame
 from objHandler import ObjHandler
 import numpy as np
+from numpy.linalg import norm
 import string
 from createObj import CreateObj
 from PIL import Image, ImageTk
@@ -42,8 +44,7 @@ class Interface():
         self.canvas = Canvas(self.main_window, width=570, height=570, bg="floral white")
         self.canvas.place(x=230, y=10)
         
-        #tarefa3 -> agora nosso window eh objeto para facilitar na rotacao do window
-        self.windowObj = Window("Window")
+        self.obj_dict = {}
 
         #margem para area de clipping
         self.margem = 20 
@@ -53,7 +54,13 @@ class Interface():
         self.xvMax = 570 -(self.margem*2) #570 é nosso padrao do canvas,
         self.yvMin = 0   #0                    a margem x2 é para tratar ambos lados
         self.yvMax = 570 -(self.margem*2) #570
-    
+
+        #self.windowObj = Window("Window", [(0.5,2,2.5),(1,0,3),(2.5,2,0.5),(3,0,1)]) #BE BD CD CE
+        self.windowObj = Window("Window", [(0.5,2,2.5),(2.5,2,0.5),(3,0,1),(1,0,3)]) #BE BD CD CE
+        #self.windowObj = Window("Window", [(2.28,-7.78,-13.28),(13.27,7.77,-2.28),(-2.28,7.78,13.28),(-13.28,-7.78,2.28)]) #BE BD CD CE
+        #self.windowObj = Window("Window")
+        #self.windowObj = Window("Window", [(0,5,0),(5,0,0),(5,0,5),(0,5,5)])
+
 
         #ainda nao tem implementacao e apenas frame para logs
         self.log_frame = Frame(self.main_window, borderwidth=1, relief="raised", bg="gray")
@@ -70,7 +77,6 @@ class Interface():
         #listbox contendo os objetos criados
         self.object_list = Listbox(self.dFile_frame, bg="gray40", yscrollcommand=self.scrollbar.set) 
         #dicionario para que tenhamos uma referencia aos objetos
-        self.obj_dict = {}
         self.scrollbar.config(command=self.object_list.yview)
         self.scrollbar.pack(side=RIGHT, fill=Y)
         self.object_list.place(x=10, y=20, width=155 , height=125)
@@ -111,12 +117,13 @@ class Interface():
         Button(self.tool_frame, image=self.esquerda, command=lambda:self.rotacionarWin(15)).place(x=45, y=160)
 
         #tarefa3 -> agora os eixos tbm sao objetos linhas
-        self.eixoX = Line("x", [(-100,0), (100,0)])
-        self.eixoY = Line("y", [(0,-100), (0, 100)])
+        self.eixoX = Line("x", [(-100,0,0), (100,0,0)] )
+        self.eixoY = Line("y", [(0,-100,0), (0, 100,0)])
+        self.eixoZ = Line("z", [(0,0,-100), (0,0,100)])
 
-        #Como a window é iniciada no meio não precisamos normalizar nem nada, escolhemos os valores já normalizados padroes dos limites do viewport
-        self.normalizar()
-        self.redesenhar()
+        self.pegarEscala() #para poder usar tamanho de window fixo e apenas atualizar no zoomin e zoomout
+
+        self.projParalela()
 
         #botoes para navegacao
         self.upB = Button(self.tool_frame, text="UP", width=5, command=lambda:self.up())
@@ -145,60 +152,88 @@ class Interface():
     
     #para esquerda <- diminui os x's
     def left(self):
-        #movimenta para esquerda na visao do usuario
-        mat = [[1,0,0],[0,1,0],[-np.cos(np.deg2rad(self.windowObj.angulo)),-np.sin(np.deg2rad(self.windowObj.angulo)),1]]
-        self.windowObj.moverXY(mat)
-        self.normalizar()
-        #chamar uma func normalizar que vai chamar o gerarDescricaoSCN para cada objeto
-        self.redesenhar()
+        self.move((-1,0,0))
+        
 
     #para direita -> aumenta os x's
     def right(self):
         #movimenta para direita na visao do usuario
-        mat = [[1,0,0],[0,1,0],[np.cos(np.deg2rad(self.windowObj.angulo)),np.sin(np.deg2rad(self.windowObj.angulo)),1]]
-        self.windowObj.moverXY(mat)
-        self.normalizar()
-        self.redesenhar()
+        self.move((1,0,0))
 
     #para cima ↑ aumenta os y's
     def up(self):
         #movimenta para cima na visao do usuario
-        mat = [[1,0,0],[0,1,0],[-np.sin(np.deg2rad(self.windowObj.angulo)),np.cos(np.deg2rad(self.windowObj.angulo)),1]]
-        self.windowObj.moverXY(mat)
-        self.normalizar()
-        self.redesenhar()
+        self.move((0,1,0))
 
     #para baixo ↓ diminui os y's
     def down(self):
         #movimenta para baixo na visao do usuario
-        mat = [[1,0,0],[0,1,0],[np.sin(np.deg2rad(self.windowObj.angulo)),-np.cos(np.deg2rad(self.windowObj.angulo)),1]]
-        self.windowObj.moverXY(mat)
-        self.normalizar()
-        self.redesenhar()
+        self.move((0,-1,0))
 
     #zoomin -> aproxima os pontos da window
     def zoomIn(self):
         #zoomin: escalonando para diminuir a tela do window
-        mat = [[0.9, 0, 0],[0, 0.9, 0],[0, 0, 1]]
-        self.windowObj.moverXY(mat)
-        self.normalizar()
-        self.redesenhar()
+        mat1 = self.alinhar_eixoZ(False)
+        self.windowObj.moverXY(mat1)
+        mat2 = [[0.9, 0, 0, 0],[0, 0.9, 0, 0],[0, 0, 0.9, 0],[0, 0, 0, 1]]
+        mat3 = np.linalg.inv(mat1)
+        res = np.matmul(mat2,mat3)
+
+        self.windowObj.escalaX *= 0.9
+        self.windowObj.escalaY *= 0.9
+        
+        self.windowObj.moverXY(res)
+        self.projParalela()
     
     #zoomout -> afasta os pontos da window
     def zoomOut(self):
         #zoomout: escalonando para aumentar a tela do window
-        mat = [[1.1, 0, 0],[0, 1.1, 0],[0, 0, 1]]
-        self.windowObj.moverXY(mat)
-        self.normalizar()
-        self.redesenhar()
+        mat1 = self.alinhar_eixoZ(False)
+        self.windowObj.moverXY(mat1)
+        mat2 = [[1.1, 0, 0, 0],[0, 1.1, 0, 0],[0, 0, 1.1, 0],[0, 0, 0, 1]]
+        mat3 = np.linalg.inv(mat1)
+        res = np.matmul(mat2,mat3)
+
+        self.windowObj.escalaX *= 1.1
+        self.windowObj.escalaY *= 1.1
+
+        self.windowObj.moverXY(res)
+        self.projParalela()
+
+    def rotacionarWin(self, ang):
+        #atualiza o angulo do window para rotacionar
+        mat1 = self.alinhar_eixoZ(False, True)  #segundo argumento trata de receber uma matriz com a normal realmente dentro do eixo Z
+        self.windowObj.moverXY(mat1)            #caso não setarmos como True, alinhar_eixoZ vai realizar uma destranslação e devolver a matriz deslocada (apenas no plano xy)
+        mat2 = self.rotacionar3D(ang, "z")      #mas não com sua normal dentro do eixo Z
+        mat3 = np.linalg.inv(mat1)
+        res = np.matmul(mat2,mat3)
+        self.windowObj.moverXY(res)
+
+
+        self.projParalela()
+
+    def move(self, tup):
+        mat1 = self.alinhar_eixoZ(False)
+        self.windowObj.moverXY(mat1)
+        mat2 = self.rotacionar3D(-self.windowObj.angulo, "z")   #se nao der certo tirar o - e ver...
+        mat3 = self.transladar3D(tup[0],tup[1],tup[2])
+        res = np.matmul(mat2,mat3)
+        mat4 = self.rotacionar3D(self.windowObj.angulo, "z")
+        res = np.matmul(res,mat4)
+        mat5 = np.linalg.inv(mat1)
+        res = np.matmul(res,mat5)
+        self.windowObj.moverXY(res)
+
+        self.projParalela()
 
 
     def redesenhar(self):
         self.canvas.delete("all") #primeiro apaga tudo
 
         #redesenha os eixos 
-        self.canvas.create_line(self.xvp(self.eixoX.coordNorm[0][0]), self.yvp(self.eixoX.coordNorm[0][1]), self.xvp(self.eixoX.coordNorm[1][0]), self.yvp(self.eixoX.coordNorm[1][1]), fill="black", width=3)
-        self.canvas.create_line(self.xvp(self.eixoY.coordNorm[0][0]), self.yvp(self.eixoY.coordNorm[0][1]), self.xvp(self.eixoY.coordNorm[1][0]), self.yvp(self.eixoY.coordNorm[1][1]), fill="black", width=3)
+        self.canvas.create_line(self.xvp(self.eixoX.coordNorm[0][0]), self.yvp(self.eixoX.coordNorm[0][1]), self.xvp(self.eixoX.coordNorm[1][0]), self.yvp(self.eixoX.coordNorm[1][1]), fill="red", width=3)
+        self.canvas.create_line(self.xvp(self.eixoY.coordNorm[0][0]), self.yvp(self.eixoY.coordNorm[0][1]), self.xvp(self.eixoY.coordNorm[1][0]), self.yvp(self.eixoY.coordNorm[1][1]), fill="green", width=3)
+        self.canvas.create_line(self.xvp(self.eixoZ.coordNorm[0][0]), self.yvp(self.eixoZ.coordNorm[0][1]), self.xvp(self.eixoZ.coordNorm[1][0]), self.yvp(self.eixoZ.coordNorm[1][1]), fill="blue", width=3)
 
         #Desenha a zona do canvas
         self.canvas.create_line(self.xvMin+self.margem, self.yvMin+self.margem ,self.xvMax+self.margem, self.yvMin+self.margem, fill="red", width=3) #Horizontal cima
@@ -208,34 +243,47 @@ class Interface():
 
         #vai verificar se tem objeto para redesenhar
         for obj in self.obj_dict.values():
-
-            tup = obj.coordNorm
+            if obj.tipo == 6:
+                for o in obj.obj_list:
+                    self.desenhar(o)
+            else:
+                self.desenhar(obj)
             
-            if obj.tipo == 1: #se ponto
-                if obj.desenhavel:
-                    self.canvas.create_oval(self.xvp(tup[0][0])-3, self.yvp(tup[0][1])-3, self.xvp(tup[0][0])+3, self.yvp(tup[0][1])+3, fill=obj.cor)
 
-            elif obj.tipo == 2: #se linha
-                if obj.desenhavel:
-                    tup = obj.coordClip
+    def desenhar(self, obj):
+        tup = obj.coordNorm
+            
+        if obj.tipo == 1: #se ponto
+            if obj.desenhavel:
+                self.canvas.create_oval(self.xvp(tup[0][0])-3, self.yvp(tup[0][1])-3, self.xvp(tup[0][0])+3, self.yvp(tup[0][1])+3, fill=obj.cor)
+
+        elif obj.tipo == 2: #se linha
+            if obj.desenhavel:
+                tup = obj.coordClip
+                self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
+
+        elif obj.tipo == 3: #se poligono
+            tup = obj.coordClip
+            for i in range (len(tup)-1):
+                if tup[i] and tup[i+1] and not(tup[i][1] == "s" and tup[i+1][1] == "e"):     #Utilizamos uma tupla vazia para indicar a parte onde nao queremos traçar uma linha
+                                                                                                #Segundo argumento verifica se são duas intersecçoes seguidas, caso sim
+                                                                                                #Se for, atenção ao caso de uma saida e uma entrada seguida, ao isso acontecer não trace entre
+                    self.canvas.create_line(self.xvp(tup[i][0][0]), self.yvp(tup[i][0][1]), self.xvp(tup[i+1][0][0]), self.yvp(tup[i+1][0][1]), fill=obj.cor, width=3)
+        
+        elif obj.tipo == 5: #se curva
+            #print("ACHOU UMA CURVA")
+            for lin in obj.linhas:
+                if lin.desenhavel:
+                    tup = lin.coordClip
                     self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
 
-            elif obj.tipo == 3: #se poligono
-                tup = obj.coordClip
-                for i in range (len(tup)-1):
-                    if tup[i] and tup[i+1] and not(tup[i][1] == "s" and tup[i+1][1] == "e"):     #Utilizamos uma tupla vazia para indicar a parte onde nao queremos traçar uma linha
-                                                                                                   #Segundo argumento verifica se são duas intersecçoes seguidas, caso sim
-                                                                                                   #Se for, atenção ao caso de uma saida e uma entrada seguida, ao isso acontecer não trace entre
-                        self.canvas.create_line(self.xvp(tup[i][0][0]), self.yvp(tup[i][0][1]), self.xvp(tup[i+1][0][0]), self.yvp(tup[i+1][0][1]), fill=obj.cor, width=3)
-            
-            elif obj.tipo == 5: #se curva
-                #print("ACHOU UMA CURVA")
-
-                for lin in obj.linhas:
-                    if lin.desenhavel:
-                        tup = lin.coordClip
-                        self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
-
+    def apagar_objeto(self):
+        #verifica linha onde cursor selecionou
+        for linha in self.object_list.curselection():  
+            #apaga do dicionario e do list box esse objeto selecionado
+            del self.obj_dict[self.object_list.get(linha)] 
+            self.object_list.delete(linha)
+        self.redesenhar()
 
 
     def transformacao(self): #trata as transformações dos objetos
@@ -281,9 +329,13 @@ class Interface():
             self.entrada_dx = Entry(self.ftb1, width=5)
             self.entrada_dx.place(x=35, y=50)
             
-            Label(self.ftb1, bg="gray", text="DY:").place(x=150, y=50)
+            Label(self.ftb1, bg="gray", text="DY:").place(x=100, y=50)
             self.entrada_dy = Entry(self.ftb1, width=5)
-            self.entrada_dy.place(x=175, y=50)
+            self.entrada_dy.place(x=125, y=50)
+
+            Label(self.ftb1, bg="gray", text="DZ:").place(x=190, y=50)
+            self.entrada_dz = Entry(self.ftb1, width=5)
+            self.entrada_dz.place(x=215, y=50)
 
             self.trans_msg = Label(self.ftb1, text="", bg="gray")
             self.trans_msg.place(x=10, y=100)
@@ -299,9 +351,13 @@ class Interface():
             self.entrada_sx = Entry(self.tb2, width=5)
             self.entrada_sx.place(x=35, y=50)
             
-            Label(self.tb2, bg="gray", text="SY:").place(x=150, y=50)
+            Label(self.tb2, bg="gray", text="SY:").place(x=100, y=50)
             self.entrada_sy = Entry(self.tb2, width=5)
-            self.entrada_sy.place(x=175, y=50)
+            self.entrada_sy.place(x=125, y=50)
+
+            Label(self.tb2, bg="gray", text="SZ:").place(x=190, y=50)
+            self.entrada_sz = Entry(self.tb2, width=5)
+            self.entrada_sz.place(x=215, y=50)
 
             self.scale_msg = Label(self.ftb2, text="", bg="gray")
             self.scale_msg.place(x=10, y=100)
@@ -312,24 +368,24 @@ class Interface():
             self.ftb3.place(x=7, y=5, width=330, height=300)
 
             self.select = Frame(self.ftb3, borderwidth=1, relief="raised", bg="gray")
-            self.select.place(x=10, y=5, width=310, height=130)
+            self.select.place(x=10, y=5, width=310, height=170)
 
             Label(self.select, bg="gray", text="Opções:").place(x=5, y=5)
 
             self.option = StringVar()   #Tipo necessário para auxiliar a retirada da opção do Radiobutton
 
             
-            Label(self.ftb3, bg="gray", text="Ângulo:").place(x=20, y=150)
+            Label(self.ftb3, bg="gray", text="Ângulo:").place(x=20, y=190)
             self.entrada_grau = Entry(self.ftb3, width=5)
-            self.entrada_grau.place(x=72, y=150)
-            Label(self.ftb3, bg="gray", text="°").place(x=130, y=150)
+            self.entrada_grau.place(x=72, y=190)
+            Label(self.ftb3, bg="gray", text="°").place(x=130, y=190)
 
 
             self.fr_point = Frame(self.ftb3, borderwidth=1, relief="raised", bg="gray")
-            self.fr_point.place(x=10, y=180, width=310, height=100)
+            self.fr_point.place(x=10, y=230, width=310, height=60)
 
             self.fr_general = Frame(self.ftb3, bg="gray")
-            self.fr_general.place(x=10, y=180, width=310 , height=100)
+            self.fr_general.place(x=10, y=230, width=310 , height=60)
 
             self.general_msg = Label(self.fr_general, text="", bg="gray")
             self.general_msg.place(x=10, y=10)
@@ -337,29 +393,49 @@ class Interface():
             Label(self.fr_point, bg="gray", text="X:").place(x=10, y=10)
             self.entrada_xp = Entry(self.fr_point, width=5)
             self.entrada_xp.place(x=35, y=10)
+ 
+            Label(self.fr_point, bg="gray", text="Y:").place(x=110, y=10)
+            self.entrada_yp = Entry(self.fr_point, width=5)
+            self.entrada_yp.place(x=135, y=10)
+
+            Label(self.fr_point, bg="gray", text="Z:").place(x=210, y=10)
+            self.entrada_zp = Entry(self.fr_point, width=5)
+            self.entrada_zp.place(x=235, y=10)
 
             self.point_msg = Label(self.fr_point, text="", bg="gray")
             self.point_msg.place(x=10, y=50)
-            
-            Label(self.fr_point, bg="gray", text="Y:").place(x=150, y=10)
-            self.entrada_yp = Entry(self.fr_point, width=5)
-            self.entrada_yp.place(x=175, y=10)
 
+            
             #Radiobutton são as partes de click para selecionar opção
-            rb = Radiobutton(self.select, text="Rotacionar sobre origem", value="o", variable=self.option, bg="gray", command=lambda:self.levantar_frame(self.fr_general))
+            rb = Radiobutton(self.select, text="Rotacionar sobre eixo x", value="x", variable=self.option, bg="gray", command=lambda:self.levantar_frame(self.fr_general))
             rb.place(x=5,y=35)
-            rb2 = Radiobutton(self.select, text="Rotacionar sobre ponto", value="p", variable=self.option, bg="gray",  command=lambda:self.levantar_frame(self.fr_point))
+            rb2 = Radiobutton(self.select, text="Rotacionar sobre eixo y", value="y", variable=self.option, bg="gray",  command=lambda:self.levantar_frame(self.fr_general))
             rb2.place(x=5,y=65)
-            rb3 = Radiobutton(self.select, text="Rotacionar sobre centro do objeto", value="s", variable=self.option, bg="gray",  command=lambda:self.levantar_frame(self.fr_general))
+            rb3 = Radiobutton(self.select, text="Rotacionar sobre eixo z", value="z", variable=self.option, bg="gray",  command=lambda:self.levantar_frame(self.fr_general))
             rb3.place(x=5,y=95)
+            rb4 = Radiobutton(self.select, text="Rotacionar sobre ponto arbitrário", value="a", variable=self.option, bg="gray",  command=lambda:self.levantar_frame(self.fr_point))
+            rb4.place(x=5,y=125)
          
+
+    #utilizado para criacao de objetos podendo seleciona varias frames para preencher
+    def levantar_frame(self, frame:Frame, frame2:Frame = None, frame3:Frame = None, zerar = True):
+        if zerar:
+            self.pontos_pol = [] #Ao trocar para outra entrada perde-se o progresso
+            self.pontos_curvaS = []
+            self.pontos_curvaB = [] 
+        frame.tkraise()
+        if frame2:
+            frame2.tkraise()
+        if frame3:
+            frame3.tkraise()
 
     def transformar(self, tab):
         if tab == "Translação":
             try:
                 dx = float(self.entrada_dx.get())   #translação em relação ao eixo X
                 dy = float(self.entrada_dy.get())   #translação em relação ao eixo Y
-                self.historico.insert(END, f"t {dx} {dy}")  #insersão na listbox de transformações
+                dz = float(self.entrada_dz.get())
+                self.historico.insert(END, f"t {dx} {dy} {dz}")  #insersão na listbox de transformações
                 self.trans_msg.config(text="Translação adicionada ao histórico", foreground="SpringGreen2")
             except:
                 self.trans_msg.config(text="Números Inválidos", foreground="Red")
@@ -368,7 +444,8 @@ class Interface():
             try:
                 sx = float(self.entrada_sx.get())   #Escalonamento para o ponto no eixo X
                 sy = float(self.entrada_sy.get())   #Escalonamento para o ponto no eixo Y
-                self.historico.insert(END, f"e {sx} {sy}")
+                sz = float(self.entrada_sz.get())
+                self.historico.insert(END, f"e {sx} {sy} {sz}")
                 self.scale_msg.config(text="Escalonamento adicionado ao histórico", foreground="SpringGreen2")
             except:
                 self.scale_msg.config(text="Números Inválidos", foreground="Red")
@@ -376,22 +453,25 @@ class Interface():
         elif tab == "Rotação":
             try:
                 var = self.option.get()
-                if var == "p": #Rotação sobre um ponto
+                angulo = float(self.entrada_grau.get())
+                if var == "a": #Rotação sobre um eixo arbitrario
                     x = float(self.entrada_xp.get())
                     y = float(self.entrada_yp.get())
-                    angulo = float(self.entrada_grau.get())
-                    self.historico.insert(END, f"rp {x} {y} {angulo}")
-                    self.point_msg.config(text="Rotação adicionado ao histórico", foreground="SpringGreen2")
+                    z = float(self.entrada_zp.get())
+                    self.historico.insert(END, f"ra {x} {y} {z} {angulo}")
+                    self.point_msg.config(text="Rotação adicionada ao histórico", foreground="SpringGreen2")
 
-                elif var == "o":    #Rotação sobre a origem
-                    angulo = float(self.entrada_grau.get())
-                    self.historico.insert(END, f"ro {angulo}")
-                    self.general_msg.config(text="Rotação adicionado ao histórico", foreground="SpringGreen2")
+                elif var == "x":    #Rotação sobre o eixo X
+                    self.historico.insert(END, f"rx {angulo}")
+                    self.general_msg.config(text="Rotação adicionada ao histórico", foreground="SpringGreen2")
 
-                elif var == "s":    #Rotação sobre si mesmo
-                    angulo = float(self.entrada_grau.get())
-                    self.historico.insert(END, f"rs {angulo}")
-                    self.general_msg.config(text="Rotação adicionado ao histórico", foreground="SpringGreen2")
+                elif var == "y":    #Rotação sobre o eixo Y
+                    self.historico.insert(END, f"ry {angulo}")
+                    self.general_msg.config(text="Rotação adicionada ao histórico", foreground="SpringGreen2")
+                
+                elif var == "z":    #Rotação sobre o eixo Z
+                    self.historico.insert(END, f"rz {angulo}")
+                    self.general_msg.config(text="Rotação adicionada ao histórico", foreground="SpringGreen2")
 
                 else:
                     self.general_msg.config(text="Selecione uma opção de rotação", foreground= "Red")
@@ -404,7 +484,7 @@ class Interface():
 
     def calcular_mat(self):
         historico = self.historico.get(0,END)   #Recebe a listbox com as transformações ordenadas
-        ant = np.matrix([[1,0,0], [0,1,0], [0,0,1]])    #Matriz identidade (valor simbolico de 1 na mult)
+        ant = np.matrix([[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1]])    #Matriz identidade (valor simbolico de 1 na mult)
         objName = self.obj_trans    #Nome do objeto
         
         for items in historico:
@@ -413,74 +493,113 @@ class Interface():
                 case "t": #Translacao
                     dx = float(lista[1])
                     dy = float(lista[2])
-                    mat = self.transladar(dx,dy)
+                    dz = float(lista[3])
+                    mat = self.transladar3D(dx,dy,dz)
                     ant = np.matmul(ant,mat)    #Evolução da matriz de transformações
     
                 case "e": #Escalonamento
                     sx = float(lista[1])    #Escalonamento por utilizar a relação do centro do objeto acaba aplicando a matriz de transformação
                     sy = float(lista[2])    # antes, nela é recalculado o centro do objeto, para dai então ser aplicado o escalonamento
-
+                    sz = float(lista[3])
                     self.obj_dict[self.obj_trans].moverXY(ant)
-                    ant = np.matrix([[1,0,0], [0,1,0], [0,0,1]])
+                    ant = np.matrix([[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1]])
 
                     centrox = self.obj_dict[objName].centroX    #Novo centro do objeto X
                     centroy = self.obj_dict[objName].centroY    #Novo centro do objeto Y
+                    centroz = self.obj_dict[objName].centroZ    #Novo centro do objeto Z
 
-                    mat1 = self.transladar(-centrox, -centroy)  #Leva o centro do objeto para a origem das coordenadas
+                    mat1 = self.transladar3D(-centrox, -centroy, -centroz)  #Leva o centro do objeto para a origem das coordenadas
                     ant = np.matmul(ant,mat1)
-                    mat2 = self.escalonar(sx,sy)                #Escalona a matriz em relação a Sx e Sy
+                    mat2 = self.escalonar3D(sx,sy,sz)                #Escalona a matriz em relação a Sx e Sy
                     ant = np.matmul(ant,mat2)
-                    mat3 = self.transladar(centrox, centroy)    #Devolve o centro do objeto até a posição original
+                    mat3 = self.transladar3D(centrox, centroy, centroz)    #Devolve o centro do objeto até a posição original
                     ant = np.matmul(ant,mat3)
 
-                case "ro": #Rotacao na origem
+                case "rx": #Rotacao sobre eixo X
                     ang = float(lista[1])
-                    mat = self.rotacionar(ang)                  #Simplesmente rotaciona em relação a origem
+                    mat = self.rotacionar3D(ang, "x")                  #Simplesmente rotaciona em relação a origem
+                    ant = np.matmul(ant,mat)
+                
+                case "ry": #Rotacao sobre eixo Y
+                    ang = float(lista[1])
+                    mat = self.rotacionar3D(ang, "y")                  #Simplesmente rotaciona em relação a origem
                     ant = np.matmul(ant,mat)
 
-                case "rs": #Rotação pelo centro do obj
+                case "rz": #Rotacao sobre eixo Z
+                    ang = float(lista[1])
+                    mat = self.rotacionar3D(ang, "z")                  #Simplesmente rotaciona em relação a origem
+                    ant = np.matmul(ant,mat)
 
-                    self.obj_dict[self.obj_trans].moverXY(ant)
-                    ant = np.matrix([[1,0,0], [0,1,0], [0,0,1]])
+                case "ra": #Rotação por um eixo arbitrario (que passa pelo centro do obj)
+                    px = float(lista[1])
+                    py = float(lista[2])
+                    pz = float(lista[3])
+                    ang = float(lista[4])
+
+                    mat1 = self.transladar3D(-px, -py, -pz)                #Leva o ponto para a origem das coordenadas
+                    ant = np.matmul(ant,mat1)
                     
                     centrox = self.obj_dict[objName].centroX
                     centroy = self.obj_dict[objName].centroY
+                    centroz = self.obj_dict[objName].centroZ
 
-                    ang = float(lista[1])
-                    mat1 = self.transladar(-(centrox), -(centroy))  #Leva o centro do objeto para a origem das coordenadas
-                    ant = np.matmul(ant,mat1)
-                    mat2 = self.rotacionar(ang)                     #Rotaciona a matriz pelo ângulo dado
+                    vetorA = [centrox-px, centroy-py, centroz-pz]
+
+                    tanx = vetorA[1]/vetorA[2] #y/z
+                    tany = vetorA[0]/vetorA[2] #x/z
+
+                    anguloX = np.degrees(np.arctan(tanx))
+                    anguloY = np.degrees(np.arctan(tany))
+
+                    mat2 = self.rotacionar3D(anguloX, "x")      #Fazemos o vetor ser paralelo ao plano x, y
+                    mat3 = self.rotacionar3D(anguloY, "y")      #Colocamos o vetor paralelo ao eixo z
+                    
                     ant = np.matmul(ant,mat2)
-                    mat3 = self.transladar(centrox, centroy)        #Devolve o centro do objeto até a posição original
                     ant = np.matmul(ant,mat3)
 
-                case "rp": #Rotação por um ponto
-                    px = float(lista[1])
-                    py = float(lista[2])
-                    ang = float(lista[3])
-                    mat1 = self.transladar(-px, -py)                #Leva o ponto para a origem das coordenadas
-                    ant = np.matmul(ant,mat1)
-                    mat2 = self.rotacionar(ang)                     #Rotaciona a matriz pelo ângulo dado
-                    ant = np.matmul(ant,mat2)
-                    mat3 = self.transladar(px, py)                  #Devolve o ponto até a posição original
-                    ant = np.matmul(ant,mat3)
+                    mat4 = self.rotacionar3D(ang, "z")          #Rotaciona o objeto pelo ângulo dado
+                    ant = np.matmul(ant,mat4)
+
+                    mat5 = self.rotacionar3D(-anguloX, "x")      #Desfazemos as rotações anteriores
+                    mat6 = self.rotacionar3D(-anguloY, "y")
+                    
+                    ant = np.matmul(ant,mat5)
+                    ant = np.matmul(ant,mat6)
+                    
+                    mat7 = self.transladar3D(px, py, pz)                  #Devolve o ponto até a posição original
+                    ant = np.matmul(ant,mat7)
         return ant
 
-    def transladar(self, dx, dy):
-        return np.matrix([[1,0,0], [0,1,0], [dx,dy,1]])             #Devolve a matriz da translação
+    def transladar3D(self, dx, dy, dz):
+        return np.matrix([[1,0,0,0], [0,1,0,0], [0,0,1,0], [dx,dy,dz,1]]) #translação em 3D
+    
+    def transladar2D(self, dx, dy):
+        return np.matrix([[1,0,0], [0,1,0], [dx,dy,1]])
 
-    def escalonar(self, sx, sy):
-        return np.matrix([[sx,0,0], [0,sy,0], [0,0,1]])             #Devolve a matriz do escalonamento
+    def escalonar3D(self, sx, sy, sz):
+        return np.matrix([[sx,0,0,0], [0,sy,0,0], [0,0,sz,0], [0,0,0,1]]) #escalonar em 3D
+    
+    def escalonar2D(self, sx, sy):
+        return np.matrix([[sx,0,0], [0,sy,0], [0,0,1]])
 
     #np.sin(np.deg2rad(90))
-    def rotacionar(self, ang):                                      #Devolve a matriz da rotação
+    def rotacionar2D(self, ang):                                      #Devolve a matriz da rotação
         return np.matrix([[np.cos(np.deg2rad(ang)), np.sin(np.deg2rad(ang)),  0], [-np.sin(np.deg2rad(ang)), np.cos(np.deg2rad(ang)), 0], [0,0,1]])
+
+    def rotacionar3D(self, ang, eixo):
+        if eixo == "x":
+            return np.matrix([[1,0,0,0],[0,np.cos(np.deg2rad(ang)), np.sin(np.deg2rad(ang)), 0], [0,-np.sin(np.deg2rad(ang)), np.cos(np.deg2rad(ang)), 0], [0,0,0,1]])
+        elif eixo == "y":
+            return np.matrix([[np.cos(np.deg2rad(ang)),0,-np.sin(np.deg2rad(ang)),0],[0,1,0,0], [np.sin(np.deg2rad(ang)),0, np.cos(np.deg2rad(ang)), 0], [0,0,0,1]])
+        else:
+            return np.matrix([[np.cos(np.deg2rad(ang)), np.sin(np.deg2rad(ang)), 0,0], [-np.sin(np.deg2rad(ang)), np.cos(np.deg2rad(ang)), 0,0], [0,0,1,0], [0,0,0,1]])
 
     def fim_trans(self):
         self.mat = self.calcular_mat()      #Calcula a matriz de transições
         self.historico.delete(0, END)
         obj = self.obj_dict[self.obj_trans]
         obj.moverXY(self.mat) #Proprio objeto aplica a matriz conforme sua especificidade
+        obj.moverXY(self.mathomo, True)
         mat = self.gerarDescricaoSCN()
         obj.normalize(mat)
         if (obj.tipo == 1):
@@ -492,6 +611,9 @@ class Interface():
             obj.weiler_atherton()
         elif (obj.tipo == 5):
             obj.curv_clipping()
+        elif (obj.tipo == 6):
+            var = self.clip_selection.get()
+            obj.arame_clipping(var)
         self.redesenhar()
 
     def cor_popup(self):
@@ -530,16 +652,12 @@ class Interface():
 
     def gerarDescricaoSCN(self):
         #trasladar o centro do window para origem
-        mat1 = self.transladar(-self.windowObj.centroX, -self.windowObj.centroY) 
-        #rotacionar window para alinhar ao eixo y
-        mat2 = self.rotacionar(-self.windowObj.angulo)
-
-        #calcular tamanho do window
-        x = abs(self.windowObj.BE[0] - self.windowObj.BD[0])/2
-        y = abs(self.windowObj.BE[1] - self.windowObj.CE[1])/2
+        mat1 = self.transladar2D(-self.windowObj.centroXHomo, -self.windowObj.centroYHomo) 
+        mat2 = self.rotacionar2D(-self.windowObj.angulo)
+        #print(f"angulo de window: {self.windowObj.angulo}")
 
         #escalona para normalizar em SCN [-1,1]
-        mat3 = self.escalonar(1/x, 1/y)
+        mat3 = self.escalonar2D(1/self.windowObj.escalaX, 1/self.windowObj.escalaY)
         result = np.matmul(mat1, mat2)
         result = np.matmul(result, mat3)
         return result
@@ -560,15 +678,12 @@ class Interface():
                 obj.weiler_atherton()
             elif (obj.tipo == 5):
                 obj.curv_clipping()
+            elif (obj.tipo == 6):
+                var = self.clip_selection.get()
+                obj.arame_clipping(var)
         self.eixoY.normalize(mat)
         self.eixoX.normalize(mat)
-
-
-    def rotacionarWin(self, ang):
-        #atualiza o angulo do window para rotacionar
-        self.windowObj.angulo = (self.windowObj.angulo+ang % 360)
-        self.normalizar()
-        self.redesenhar()
+        self.eixoZ.normalize(mat)
 
     
 
@@ -603,4 +718,84 @@ class Interface():
         self.obj.write_file(list_obj)                   #para auxiliar na exportação
 
 
+    def pegarEscala(self):
+        mat1 = self.alinhar_eixoZ(False, True)
+        self.windowObj.moverXY(mat1)
+        mat2 = self.rotacionar3D(-self.windowObj.angulo, "z")   #se nao der certo tirar o - e ver.
+        self.windowObj.moverXY(mat2)
+        self.windowObj.escalaX = abs(self.windowObj.coordenadas[1][0]- self.windowObj.coordenadas[0][0]) #BD - BE (x)
+        self.windowObj.escalaY = abs(self.windowObj.coordenadas[3][1]- self.windowObj.coordenadas[0][1]) #CE - BE (y)
+        mat3 = self.rotacionar3D(self.windowObj.angulo, "z")
+        mat4 = np.linalg.inv(mat1)
+        res = np.matmul(mat3,mat4)
+        self.windowObj.moverXY(res)
+        #print(f"Escala X inicial: {self.windowObj.escalaX}")
+        #print(f"Escala Y inicial: {self.windowObj.escalaY}")
 
+    def projParalela(self):
+        """
+        1.	Translade VRP para a origem
+        2.	Determine VPN
+                Decomponha e determine os ângulos de VPN com X e Y
+        3.	Rotacione o mundo em torno de X e Y de forma a alinhar VPN com o eixo Z
+        4.	Ignore todas as coordenadas Z dos objetos.
+        5.	Normalize o resto (coordenadas de window)
+        6.	Clippe
+        7.	Transforme para coordenadas de Viewport 
+        """
+        
+        self.mathomo = self.alinhar_eixoZ(True)
+
+        ##########################
+        self.windowObj.moverXY(self.mathomo, True)
+        self.windowObj.calc_angulo()
+        for obj in self.obj_dict.values():
+            obj.moverXY(self.mathomo, True)
+
+        self.eixoX.moverXY(self.mathomo, True)         
+        self.eixoY.moverXY(self.mathomo, True)
+        self.eixoZ.moverXY(self.mathomo, True)
+
+        self.normalizar()
+        self.redesenhar()
+
+    
+    def alinhar_eixoZ(self, homo, centro = False):
+        x, y, z = self.windowObj.centroX, self.windowObj.centroY, self.windowObj.centroZ
+
+        mat1 = self.transladar3D(-x,-y,-z)
+        vetor1 = []
+        vetor2 = []
+        for i in range(3):
+            vetor1.append(self.windowObj.CE[i] - self.windowObj.CD[i]) #criando vetor 1
+            vetor2.append(self.windowObj.CE[i] - self.windowObj.BE[i]) #criando vetor 2
+
+        
+        normal = np.cross(vetor1, vetor2) #produto vetorial
+        tanx = normal[1]/normal[2] #y/z
+
+        anguloX = np.degrees(np.arctan(tanx))
+ 
+        mat2 = self.rotacionar3D(anguloX, "x")
+        mat = np.matmul(mat1,mat2)
+        self.windowObj.moverXY(mat, True)
+        
+        #####################################
+        vetor1 = []
+        vetor2 = []
+        
+        for i in range(3):
+            vetor1.append(self.windowObj.coordHomo[3][i] - self.windowObj.coordHomo[2][i])
+            vetor2.append(self.windowObj.coordHomo[3][i] - self.windowObj.coordHomo[0][i])
+            
+        normal = np.cross(vetor1, vetor2) #produto vetorial
+        tany = normal[0]/normal[2] #x/z
+        anguloY = -np.degrees(np.arctan(tany))
+
+        mat3 = self.rotacionar3D(anguloY, "y")
+
+        res = np.matmul(mat, mat3)
+        if (not homo) and (not centro):        #Devolve para uma posição deslocada
+            mat1 = np.linalg.inv(mat1)
+            res = np.matmul(res, mat1)
+        return res

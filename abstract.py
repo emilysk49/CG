@@ -100,6 +100,16 @@ class ObjetoGrafico(ABC):
             resposta.append((result.item(0),result.item(1),result.item(2)))
         return resposta
 
+    def projete(self, mat):
+        for i in range(len(self.coordHomo)):
+            homo = [self.coordHomo[i][0], self.coordHomo[i][1], self.coordHomo[i][2], 1]
+            resp = np.matmul(homo, mat)
+            x = resp.item(0)
+            y = resp.item(1)
+            z = resp.item(2)
+            w = resp.item(3)
+            self.coordHomo[i] = [x/w, y/w, z/w]
+
 
     def export(self):
         exp = {}

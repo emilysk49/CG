@@ -19,6 +19,10 @@ class Arame(ObjetoGrafico):
         #print(self.obj_list)
         for obj in self.obj_list:
             obj.normalize(mat)
+    
+    def projete(self, mat: np.matrix):
+        for obj in self.obj_list:
+            obj.projete(mat)
   
     def calc_centro(self):
         sumX, sumY, sumZ = 0,0,0

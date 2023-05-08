@@ -103,7 +103,6 @@ class Line(ObjetoGrafico):
 
 
     def cohen_sutherland(self): #[cima, baixo, direita, esquerda]
-        print(self.coordNorm)
         p1 = self.codigoPonto(self.coordNorm[0])
         p2 = self.codigoPonto(self.coordNorm[1])
 

@@ -43,18 +43,31 @@ class Window(ObjetoGrafico):
     def calc_angulo(self):
         px = (self.coordHomo[2][0] + self.coordHomo[3][0]) /2 #ponto central de cima x
         py = (self.coordHomo[2][1] + self.coordHomo[3][1]) /2 #ponto central de cima y
-        self.vup = (px-self.centroXHomo, py-self.centroYHomo)
+        self.vup = (px-self.centroXHomo, py-self.centroYHomo) #vetor para cima do window
+        #print(f"VUP: {self.vup}")
         y = [0,1]
         
-        produto_escalar = np.dot(self.vup, y)
+        #produto_escalar = np.dot(self.vup, y)
         
-        norma_cima = np.linalg.norm(self.vup)
-        norma_y = np.linalg.norm(y)
+        # Calcule o produto escalar e o determinante
+        dot = np.dot([self.vup[0], self.vup[1]], [0, 1])
+        det = np.cross([self.vup[0], self.vup[1]], [0, 1])
 
-        self.angulo = np.degrees(np.arccos(produto_escalar / (norma_cima * norma_y)))
+        # Calcule o ângulo em radianos
+        angle = np.arctan2(det, dot)
 
-        if px < 0:
-            self.angulo = 360 - self.angulo
+        # Converta o ângulo para graus
+        self.angulo = np.degrees(angle)
+
+        #norma_cima = np.linalg.norm(self.vup)
+        #norma_y = np.linalg.norm(y)
+
+        #self.angulo = np.degrees(np.arccos(produto_escalar / (norma_cima * norma_y)))
+
+        #if px < 0:
+        #    self.angulo = 360 - self.angulo
+
+        #print(self.angulo)
 
             
 
@@ -68,4 +81,4 @@ class Window(ObjetoGrafico):
         self.centroXHomo = x/n
         self.centroYHomo = y/n
         self.centroZHomo = z/n
-        self.centroHomo = (self.centroXHomo, self.centroYHomo, self.centroZHomo)
+        self.centroHomo = [self.centroXHomo, self.centroYHomo, self.centroZHomo]

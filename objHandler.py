@@ -56,9 +56,9 @@ class ObjHandler:
                 elif line.startswith("p "):
                     v_index = list(map(int, line.split()[1:]))
                     if (v_index[0] > 0) :
-                        point = [(self.vertices[v_index[0]-1][0], self.vertices[v_index[0]-1][1])]
+                        point = [(self.vertices[v_index[0]-1][0], self.vertices[v_index[0]-1][1], self.vertices[v_index[0]-1][2])]
                     else:
-                        point = [(self.vertices[v_index[0]][0], self.vertices[v_index[0]][1])]
+                        point = [(self.vertices[v_index[0]][0], self.vertices[v_index[0]][1], self.vertices[v_index[0]][2])]
                     ponto = Point(obj_name, point)
                     obj_name = ""
                     if (color != ""):
@@ -76,10 +76,10 @@ class ObjHandler:
                         pontos = []
                         if v_index[0] > 0:
                             for i in v_index:
-                                pontos.append((self.vertices[i-1][0], self.vertices[i-1][1]))
+                                pontos.append((self.vertices[i-1][0], self.vertices[i-1][1], self.vertices[i-1][2]))
                         else:
                             for i in v_index:
-                                pontos.append((self.vertices[i][0], self.vertices[i][1]))
+                                pontos.append((self.vertices[i][0], self.vertices[i][1], self.vertices[i][2]))
                         poligono = Polygon(obj_name, pontos)
                         obj_name = ""
                         if (color != ""):
@@ -92,11 +92,11 @@ class ObjHandler:
                     else:
                         #linha
                         if v_index[0] > 0:
-                            line = [(self.vertices[v_index[0]-1][0], self.vertices[v_index[0]-1][1]),
-                                    (self.vertices[v_index[1]-1][0], self.vertices[v_index[1]-1][1])]
+                            line = [(self.vertices[v_index[0]-1][0], self.vertices[v_index[0]-1][1], self.vertices[v_index[0]-1][2]),
+                                    (self.vertices[v_index[1]-1][0], self.vertices[v_index[1]-1][1], self.vertices[v_index[1]-1][2])]
                         else:
-                            line = [(self.vertices[v_index[0]][0], self.vertices[v_index[0]][1]),
-                                    (self.vertices[v_index[1]][0], self.vertices[v_index[1]][1])]
+                            line = [(self.vertices[v_index[0]][0], self.vertices[v_index[0]][1], self.vertices[v_index[0]][2]),
+                                    (self.vertices[v_index[1]][0], self.vertices[v_index[1]][1], self.vertices[v_index[1]][2])]
                         linha = Line(obj_name, line)
                         obj_name = ""
                         if (color != ""):

@@ -749,6 +749,13 @@ class Interface():
             if obj.tipo == 5:
                 mat = self.gerarDescricaoSCN()
                 list_obj.append(obj.export(mat))
+            elif obj.tipo == 6:
+                for object in obj.obj_list:
+                    if object.tipo == 5:
+                        mat = self.gerarDescricaoSCN()
+                        list_obj.append(object.export(mat))
+                    else:
+                        list_obj.append(object.export()) 
             else:
                 list_obj.append(obj.export())               #Cada objeto prepara uma dicionário próprio
         self.obj.write_file(list_obj)                   #para auxiliar na exportação

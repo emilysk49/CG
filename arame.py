@@ -69,4 +69,5 @@ class Arame(ObjetoGrafico):
         exit()
     
     def export(self):
-        print("A finalizar para objetos ARAME")
+        for obj in self.obj_list:
+            obj.export()

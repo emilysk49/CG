@@ -288,7 +288,7 @@ class CreateObj():
                     obj_list.append(self.w.obj_dict[obj])
                 elif self.w.obj_dict[obj].tipo == 3: # se eh poligono
                     for i in range(len(self.w.obj_dict[obj].coordenadas)): #adicionamos todas as linhas do polígono e as tratamos individualmente (melhor calculo do centro)
-                        obj_list.append(Line("_",[self.w.obj_dict[obj].coordenadas[i-1], self.w.obj_dict[obj].coordenadas[i]]))
+                        obj_list.append(Line(f"{self.w.obj_dict[obj].nome}_{i}",[self.w.obj_dict[obj].coordenadas[i-1], self.w.obj_dict[obj].coordenadas[i]]))
                 elif self.w.obj_dict[obj].tipo == 6: # se eh outro arame
                     for i in self.w.obj_dict[obj].obj_list:
                         obj_list.append(i)

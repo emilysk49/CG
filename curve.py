@@ -102,12 +102,12 @@ class Curve(ObjetoGrafico):
     def export(self, mat: np.matrix):
         exp = {}
         exp["nome"] = self.nome 
-        mat = np.linalg.inv(mat)
+        mat = np.linalg.inv(mat)    #"Desnormalizando" pois nós guardamos as coordCurv já normalizadas para melhor desempenho
         coord = []
         for p in self.coordCurv:
             ponto = [p[0],p[1],1]
             result = np.matmul(ponto, mat)
-            coord.append((result.item(0),result.item(1)))
+            coord.append((result.item(0),result.item(1),1))
         exp["coord"] = coord
         exp["cor"] = self.cor
         exp["tipo"] = self.tipo

@@ -128,7 +128,7 @@ class ObjHandler:
                 f.write(f"o {nome}\n")
                 f.write(f"usemtl {cor}\n")
                 for i in coord:
-                    f.write(f"v {i[0]} {i[1]} 0\n")
+                    f.write(f"v {i[0]} {i[1]} {i[2]}\n")
             
                 if (tipo == 1):
                     f.write("p -1\n")
@@ -141,7 +141,7 @@ class ObjHandler:
                         num = (i*-1)-1
                         f.write(f"{num} ")
                     f.write("\n")
-                else:
+                elif (tipo == 5):
                     for i in range(len(coord),1,-1):
                         num = (i*-1)
                         if i != len(coord):
@@ -149,7 +149,7 @@ class ObjHandler:
                             f.write(f"o {nome}\n")
                             f.write(f"usemtl {cor}\n")
                         f.write(f"l {num} {num+1}\n")
-
+                
         with open(file_name+".mtl", "a") as f:
             for c in colors:
                 f.write(f"newmtl {c}\n")

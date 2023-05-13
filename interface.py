@@ -69,6 +69,8 @@ class Interface():
         #self.windowObj = Window("Window", [(5,0,0),(0,5,0),(0,5,5),(5,0,5)])
 
 
+        self.sup_msg = StringVar(value="Adicione 16 pontos") #Para criar uma superfície e mantermos as mensagens sempre atualizadas
+
         #ainda nao tem implementacao e apenas frame para logs
         self.log_frame = Frame(self.main_window, borderwidth=1, relief="raised", bg="gray")
         self.log_frame.place(x=230, y=600, width=570, height=80)
@@ -231,14 +233,28 @@ class Interface():
 
     def rotacionarWin(self, ang, sentido):
         #atualiza o angulo do window para rotacionar
-        mat1 = self.alinhar_eixoZ(False, True)  #segundo argumento trata de receber uma matriz com a normal realmente dentro do eixo Z
-        self.windowObj.moverXY(mat1)            #caso não setarmos como True, alinhar_eixoZ vai realizar uma destranslação e devolver a matriz deslocada (apenas no plano xy)
-        mat2 = self.rotacionar3D(ang, sentido)      #mas não com sua normal dentro do eixo Z
-        mat3 = np.linalg.inv(mat1)
-        res = np.matmul(mat2,mat3)
-        self.windowObj.moverXY(res)
+        if sentido == "z":
+            mat1 = self.alinhar_eixoZ(False, True)  #segundo argumento trata de receber uma matriz com a normal realmente dentro do eixo Z
+            self.windowObj.moverXY(mat1)            #caso não setarmos como True, alinhar_eixoZ vai realizar uma destranslação e devolver a matriz deslocada (apenas no plano xy)
+            mat2 = self.rotacionar3D(ang, sentido)      #mas não com sua normal dentro do eixo Z
+            mat3 = np.linalg.inv(mat1)
+            res = np.matmul(mat2,mat3)
+            self.windowObj.moverXY(res)
+            self.projecao()
+        else:                                               #TENTATIVA DE CONSERTAR A ROTAÇÃO, MAS AINDA NAO DEU 
+            mat1 = self.alinhar_eixoZ(False, True) 
+            #self.windowObj.moverXY(mat1)         
+            mataux = self.rotacionar3D(-self.windowObj.angulo, "z")
+            res = np.matmul(mat1,mataux)
+            self.windowObj.moverXY(res)
+            mat2 = self.rotacionar3D(ang, sentido)     
+            mataux2 = self.rotacionar3D(self.windowObj.angulo, "z")
+            mat3 = np.linalg.inv(mat1)
+            res = np.matmul(mat2,mataux2)
+            res = np.matmul(res, mat3)
+            self.windowObj.moverXY(res)
 
-        self.projecao()
+            self.projecao()
     
 
     
@@ -261,9 +277,6 @@ class Interface():
         self.canvas.delete("all") #primeiro apaga tudo
 
         #redesenha os eixos 
-        #print(f"x redesenhar: {self.eixoX.coordNorm}")
-        #print(f"y redesenhar: {self.eixoY.coordNorm}")
-        #print(f"z redesenhar: {self.eixoZ.coordNorm}")
         self.canvas.create_line(self.xvp(self.eixoX.coordNorm[0][0]), self.yvp(self.eixoX.coordNorm[0][1]), self.xvp(self.eixoX.coordNorm[1][0]), self.yvp(self.eixoX.coordNorm[1][1]), fill="red", width=3)
         self.canvas.create_line(self.xvp(self.eixoY.coordNorm[0][0]), self.yvp(self.eixoY.coordNorm[0][1]), self.xvp(self.eixoY.coordNorm[1][0]), self.yvp(self.eixoY.coordNorm[1][1]), fill="green", width=3)
         self.canvas.create_line(self.xvp(self.eixoZ.coordNorm[0][0]), self.yvp(self.eixoZ.coordNorm[0][1]), self.xvp(self.eixoZ.coordNorm[1][0]), self.yvp(self.eixoZ.coordNorm[1][1]), fill="blue", width=3)
@@ -276,13 +289,12 @@ class Interface():
 
         #vai verificar se tem objeto para redesenhar
         for obj in self.obj_dict.values():
-            if obj.tipo == 6:
+            if obj.tipo == 6: #se arame
                 for o in obj.obj_list:
                     self.desenhar(o)
             else:
                 self.desenhar(obj)
-            
-
+    
     def desenhar(self, obj):
         tup = obj.coordNorm
             
@@ -303,12 +315,14 @@ class Interface():
                                                                                                 #Se for, atenção ao caso de uma saida e uma entrada seguida, ao isso acontecer não trace entre
                     self.canvas.create_line(self.xvp(tup[i][0][0]), self.yvp(tup[i][0][1]), self.xvp(tup[i+1][0][0]), self.yvp(tup[i+1][0][1]), fill=obj.cor, width=3)
         
-        elif obj.tipo == 5: #se curva
+        elif obj.tipo == 5 or obj.tipo == 7: #se curva ou se superficie
             #print("ACHOU UMA CURVA")
             for lin in obj.linhas:
                 if lin.desenhavel:
                     tup = lin.coordClip
                     self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
+        
+
 
     def apagar_objeto(self):
         #verifica linha onde cursor selecionou
@@ -455,7 +469,9 @@ class Interface():
         if zerar:
             self.pontos_pol = [] #Ao trocar para outra entrada perde-se o progresso
             self.pontos_curvaS = []
-            self.pontos_curvaB = [] 
+            self.pontos_curvaB = []
+            self.pontos_sup = []
+            self.sup_msg.set("Adicione 16 pontos!")
         frame.tkraise()
         if frame2:
             frame2.tkraise()
@@ -643,10 +659,14 @@ class Interface():
         elif (obj.tipo == 3):
             obj.weiler_atherton()
         elif (obj.tipo == 5):
-            obj.curv_clipping()
+            var = self.clip_selection.get()
+            obj.curv_clipping(var)
         elif (obj.tipo == 6):
             var = self.clip_selection.get()
             obj.arame_clipping(var)
+        elif (obj.tipo == 7):
+            var = self.clip_selection.get()
+            obj.superf_clipping(var)
         self.redesenhar()
 
     def cor_popup(self):
@@ -711,10 +731,14 @@ class Interface():
             elif (obj.tipo == 3):
                 obj.weiler_atherton()
             elif (obj.tipo == 5):
-                obj.curv_clipping()
+                var = self.clip_selection.get()
+                obj.curv_clipping(var)
             elif (obj.tipo == 6):
                 var = self.clip_selection.get()
                 obj.arame_clipping(var)
+            elif (obj.tipo == 7):
+                var = self.clip_selection.get()
+                obj.superf_clipping(var)
         self.eixoY.normalize(mat)
         self.eixoX.normalize(mat)
         self.eixoZ.normalize(mat)
@@ -838,7 +862,7 @@ class Interface():
         """
         
         self.mathomo = self.alinhar_eixoZ(True)
-
+        
         ##########################
         self.windowObj.moverXY(self.mathomo, True)
         self.windowObj.calc_angulo()
@@ -859,8 +883,7 @@ class Interface():
     
     def alinhar_eixoZ(self, homo, centro = False):
         x, y, z = self.windowObj.centroX, self.windowObj.centroY, self.windowObj.centroZ
-        #print("x, y, z, = ", x,y,z)
-
+        
         mat1 = self.transladar3D(-x,-y,-z)
         vetor1 = []
         vetor2 = []
@@ -868,31 +891,13 @@ class Interface():
             vetor1.append( self.windowObj.centro[i] - self.windowObj.CE[i]) #criando vetor 1
             vetor2.append( self.windowObj.CD[i] - self.windowObj.centro[i]) #criando vetor 2
 
-        #print(f"vetor1X {vetor1}")
-        #print(f"vetor2X {vetor2}")
 
         normal = np.cross(vetor1, vetor2) #produto vetorial
-
-        '''
-        # Calcule o produto escalar e o determinante
-        dot = np.dot([x1, y1], [x2, y2])
-        det = np.cross([x1, y1], [x2, y2])
-
-        # Calcule o ângulo em radianos
-        angle = np.arctan2(det, dot)
-
-        # Converta o ângulo para graus
-        angle_degrees = np.degrees(angle)
-        '''
-
-
-        #normal = normal*-1
-        #print(f"Vetor Normal: {normal}")
 
         tanx = normal[1]/normal[2] #y/z
 
         anguloX = np.degrees(np.arctan(tanx))
-        #print(f"anguloX: {anguloX}")
+
  
         mat2 = self.rotacionar3D(anguloX, "x")
         mat = np.matmul(mat1,mat2)
@@ -906,13 +911,11 @@ class Interface():
             vetor1.append( self.windowObj.centroHomo[i] - self.windowObj.coordHomo[3][i])
             vetor2.append( self.windowObj.coordHomo[2][i] - self.windowObj.centroHomo[i])
         
-        #print(f"vetor1Y {vetor1}")
-        #print(f"vetor2Y {vetor2}")
 
         normal = np.cross(vetor1, vetor2) #produto vetorial
         tany = normal[0]/normal[2] #x/z
         anguloY = -np.degrees(np.arctan(tany))
-        #print(f"anguloY: {anguloY}")
+
 
         mat3 = self.rotacionar3D(anguloY, "y")
 
@@ -921,3 +924,6 @@ class Interface():
             mat1 = np.linalg.inv(mat1)
             res = np.matmul(res, mat1)
         return res
+
+
+    

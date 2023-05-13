@@ -95,9 +95,9 @@ class Curve(ObjetoGrafico):
             Xvelho = x
             Yvelho = y
         
-    def curv_clipping(self):
+    def curv_clipping(self, clipeLinha):
         for l in self.linhas:
-            l.line_clip("l")
+            l.line_clip(clipeLinha)
     
     def export(self, mat: np.matrix):
         exp = {}

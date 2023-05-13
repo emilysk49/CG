@@ -7,6 +7,7 @@ from polygon import Polygon
 from window import Window
 from curve import Curve
 from arame import Arame
+from superficie import Superficie
 
 class CreateObj():
     def __init__(self, window):
@@ -23,6 +24,7 @@ class CreateObj():
         Button(self.pop, text="Polygon", width=5, command=lambda:self.w.levantar_frame(self.polygon_frame)).place(x=10, y=70)
         Button(self.pop, text="Curva", width=5, command=lambda:self.w.levantar_frame(self.curve_frame, self.p4_frame, self.p_frame)).place(x=10,y=100)
         Button(self.pop, text="Arame", width=5, command=lambda:self.w.levantar_frame(self.arame_frame)).place(x=10,y=130)
+        Button(self.pop, text="Superficie", width=5, command=lambda:self.w.levantar_frame(self.superf_frame)).place(x=10,y=160)
 
         ############################################## PONTO #########################################################
         self.point_frame = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=300, height=300)
@@ -258,10 +260,71 @@ class CreateObj():
         self.msg_label6 = Label(self.arame_frame, text="", bg="gray")
         self.msg_label6.place(x=10, y=270)
 
-        ############################################## INICIAL #########################################################
+        ######################################################### Superficie #############################################################
+        self.cont = 16
+        
+        self.superf_frame = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=300, height=300)
+        self.superf_frame.place(x=100, y=0) 
+        Label(self.superf_frame, bg="gray", text="Nome :").place(x=5, y=5)
+        self.nome_superf = Entry(self.superf_frame, width=12)
+        self.nome_superf.place(x=52, y=5)
+        Label(self.superf_frame, bg="gray", text="X :").place(x=5, y=50)
+        self.supX = Entry(self.superf_frame, width=5)
+        self.supX.place(x=25, y=50)
+        Label(self.superf_frame, bg="gray", text="Y :").place(x=100, y=50)
+        self.supY = Entry(self.superf_frame, width=5)
+        self.supY.place(x=120, y=50)
+        Label(self.superf_frame, bg="gray", text="Z :").place(x=195, y=50)
+        self.supZ = Entry(self.superf_frame, width=5)
+        self.supZ.place(x=215, y=50)
+        Button(self.superf_frame, text="ADICIONAR", command=lambda:self.add_ponto_superf()).place(x=50, y=100)
+        self.msgInf_label = Label(self.superf_frame, textvariable=self.w.sup_msg, bg="gray", foreground="black")
+        self.msgInf_label.place(x=10, y=150)
+        self.msgErr_label = Label(self.superf_frame, text="", bg="gray")
+        self.msgErr_label.place(x=10, y=200)
+
+
+        ######################################################## INICIAL ###################################################################
         self.pop_padrao = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=300, height=300)
         self.pop_padrao.place(x=100, y=0) 
         Label(self.pop_padrao, text="Selecione objeto que \n quer desenhar!", bg="gray").place(x=50, y=120)
+
+
+    def add_ponto_superf(self):
+        try:
+            nome = self.nome_superf.get()
+            if not (nome in self.w.obj_dict.keys()):
+                x = float(self.supX.get())            #cuida que x e y nao recebeu entrada de string
+                y = float(self.supY.get())
+                z = float(self.supZ.get())
+                self.w.pontos_sup.append((x,y,z))
+                
+                self.cont = 16-len(self.w.pontos_sup)
+                self.w.sup_msg.set(f"Adicione mais {self.cont} pontos")
+                #self.msgInf_label.config(text=mensagem, foreground="black")
+                self.msgErr_label.config(text="")
+                if self.cont == 0:
+                    self.criar_superficie()
+            else:
+                self.w.sup_msg.set("Ponto não adicionado")
+                self.msgErr_label.config(text="Nome já existente!", foreground="red")
+        except:
+            self.msgErr_label.config(text="Apenas números!", foreground="red")
+    
+    def criar_superficie(self):
+        nome = self.nome_superf.get()
+        self.w.object_list.insert(END, nome)
+        pontos = self.w.pontos_sup[:]                 #copia a lista
+        self.w.obj_dict[nome] = Superficie(nome, pontos) 
+        self.w.pontos_sup = []
+        self.w.obj_dict[nome].moverXY(self.w.mathomo, True)
+        mat = self.w.gerarDescricaoSCN()              #gerar descricao de SCN
+        self.w.obj_dict[nome].normalize(mat)          #normaliza objeto criado
+        var = self.w.clip_selection.get()
+        self.w.obj_dict[nome].superf_clipping(var)
+        self.w.sup_msg.set("Superficie criado!")
+        self.w.redesenhar()
+
 
     def add_from_to(self, origem, destino):
         if len(origem.curselection()) == 1:
@@ -278,13 +341,10 @@ class CreateObj():
         #try:
         nome = self.nome_obj6.get()
         if not (nome in self.w.obj_dict.keys()):
-            #print("Nao tem mesmo nome !")
             self.w.object_list.insert(END, nome)
             obj_list = []
             for obj in self.arame_list.get(0, END):
-                #print(f"obj é: {obj}")
                 if self.w.obj_dict[obj].tipo == 1 or self.w.obj_dict[obj].tipo == 2 or self.w.obj_dict[obj].tipo == 5: #se ponto ou linha ou curva
-                    #print("tipo linha, ponto, curva achado")
                     obj_list.append(self.w.obj_dict[obj])
                 elif self.w.obj_dict[obj].tipo == 3: # se eh poligono
                     for i in range(len(self.w.obj_dict[obj].coordenadas)): #adicionamos todas as linhas do polígono e as tratamos individualmente (melhor calculo do centro)
@@ -293,14 +353,10 @@ class CreateObj():
                     for i in self.w.obj_dict[obj].obj_list:
                         obj_list.append(i)
                 index = self.w.object_list.get(0, "end").index(obj)
-                #print("pegando index do obj a ser deletado")
                 self.w.object_list.delete(index)
-                #print("deletou obj da listbox")
                 del self.w.obj_dict[obj]            #del self.w.obj_dict[self.w.object_list.get(index)] 
-                #print("deletou obj do dicionario")
             
             self.w.obj_dict[nome] = Arame(nome, obj_list) 
-            #print(f"Sua obj_list é: {obj_list}")
             self.w.obj_dict[nome].moverXY(self.w.mathomo, True) #Necessário para o caso do polígono, onde as novas Line's sendo criadas precisam ter coordNorm para sua normalização
             mat = self.w.gerarDescricaoSCN()             #gera descricao de SCN
             self.w.obj_dict[nome].normalize(mat)         #normaliza objeto criado
@@ -404,7 +460,8 @@ class CreateObj():
             mat = self.w.gerarDescricaoSCN()              #gerar descricao de SCN
             self.w.obj_dict[nome] = Curve(nome, pontos, mat, tipo)    #curva já tem seus pontos normalizados na criação
             #self.obj_dict[nome].normalize(mat)          #normaliza objeto criado
-            self.w.obj_dict[nome].curv_clipping()
+            var = self.w.clip_selection.get()
+            self.w.obj_dict[nome].curv_clipping(var)
             self.w.redesenhar()
             if tipo == "B":
                 self.msg_label4.config(text="Curva criada!", foreground="SpringGreen2")
@@ -472,4 +529,24 @@ class CreateObj():
         except:
             self.msg_label5.config(text="Apenas números!", foreground="red")
 
-    
+        
+'''
+import tkinter as tk
+
+root = tk.Tk()
+
+# criar uma variável StringVar e atribuir ela como valor para a opção textvariable do Label
+var_text = tk.StringVar(value="Olá, mundo!")
+label = tk.Label(root, textvariable=var_text)
+label.pack()
+
+# função para atualizar o valor da variável StringVar
+def atualizar_texto():
+    var_text.set("Novo texto!")
+
+# botão para chamar a função que atualiza o texto
+botao = tk.Button(root, text="Atualizar texto", command=atualizar_texto)
+botao.pack()
+
+root.mainloop()
+'''

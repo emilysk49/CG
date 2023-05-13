@@ -233,28 +233,15 @@ class Interface():
 
     def rotacionarWin(self, ang, sentido):
         #atualiza o angulo do window para rotacionar
-        if sentido == "z":
-            mat1 = self.alinhar_eixoZ(False, True)  #segundo argumento trata de receber uma matriz com a normal realmente dentro do eixo Z
-            self.windowObj.moverXY(mat1)            #caso não setarmos como True, alinhar_eixoZ vai realizar uma destranslação e devolver a matriz deslocada (apenas no plano xy)
-            mat2 = self.rotacionar3D(ang, sentido)      #mas não com sua normal dentro do eixo Z
-            mat3 = np.linalg.inv(mat1)
-            res = np.matmul(mat2,mat3)
-            self.windowObj.moverXY(res)
-            self.projecao()
-        else:                                               #TENTATIVA DE CONSERTAR A ROTAÇÃO, MAS AINDA NAO DEU 
-            mat1 = self.alinhar_eixoZ(False, True) 
-            #self.windowObj.moverXY(mat1)         
-            mataux = self.rotacionar3D(-self.windowObj.angulo, "z")
-            res = np.matmul(mat1,mataux)
-            self.windowObj.moverXY(res)
-            mat2 = self.rotacionar3D(ang, sentido)     
-            mataux2 = self.rotacionar3D(self.windowObj.angulo, "z")
-            mat3 = np.linalg.inv(mat1)
-            res = np.matmul(mat2,mataux2)
-            res = np.matmul(res, mat3)
-            self.windowObj.moverXY(res)
-
-            self.projecao()
+        
+        mat1 = self.alinhar_eixoZ(False, True)  #segundo argumento trata de receber uma matriz com a normal realmente dentro do eixo Z
+        self.windowObj.moverXY(mat1)            #caso não setarmos como True, alinhar_eixoZ vai realizar uma destranslação e devolver a matriz deslocada (apenas no plano xy)
+        mat2 = self.rotacionar3D(ang, sentido)      #mas não com sua normal dentro do eixo Z
+        mat3 = np.linalg.inv(mat1)
+        res = np.matmul(mat2,mat3)
+        self.windowObj.moverXY(res)
+        self.projecao()
+        
     
 
     

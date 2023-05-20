@@ -8,17 +8,12 @@ class Superficie(ObjetoGrafico):
     def __init__(self, nome, coordenadas, passo=0.1):
         self.linhas = []
         self.passo = passo
-        self.coordSup = []
         self.coordClip = []
         self.coordenadas = coordenadas
-        self.criarSup()
+        self.bezier()
         super().__init__(nome, Tipo.SUPERFICIE.value, coordenadas) #ultimo por conta do calc centro
         self.cor = "#034B85"
-        print(len(self.linhas))
 
-
-    def criarSup(self):
-        self.bezier()
 
     @ObjetoGrafico.cor.setter
     def cor(self, valor):
@@ -106,29 +101,55 @@ class Superficie(ObjetoGrafico):
         maty = SMb*gy*MbT
         matz = SMb*gz*MbT
         sAtual = 0
-        while sAtual <= 1:
+        while sAtual <= 1:              ####################### mudar aqui talvez (Se mudar aqui mudar a linha 120) ####################### 
             x = matx.subs(s, sAtual)
             y = maty.subs(s, sAtual)
             z = matz.subs(s, sAtual)
 
-            self.iteracao(x, y, z)
+            self.iteracaot(x, y, z)
             sAtual += self.passo
         
         self.coordCurv = [] #só para não armazenar as várias coordenas por nada
 
+        tAtual = 0
+        while tAtual <= 1:              ####################### mudar aqui talvez (Se mudar aqui mudar a linha 109) ####################### 
+            x = matx.subs(t, tAtual)
+            y = maty.subs(t, tAtual)
+            z = matz.subs(t, tAtual)
 
-    def iteracao(self, matx, maty, matz):
+            self.iteracaos(x, y, z)
+            tAtual += self.passo
+        
+        self.coordCurv = [] #só para não armazenar as várias coordenas por nada
+
+
+    def iteracaot(self, matx, maty, matz):
         ti = 0
-        while ti <= 1:
+        while ti <= 1:                  ####################### mudar aqui talvez (Se mudar aqui mudar a linha 147) ####################### 
             x = matx.subs(t, ti)
             y = maty.subs(t, ti)
             z = matz.subs(t, ti)
             self.coordCurv.append((x[0,0],y[0,0],z[0,0]))
-            ti += self.passo
 
-            if len(self.coordCurv) > 1:
+            if ti != self.passo and ti != 0:
                 lin = Line("_", [self.coordCurv[-2], self.coordCurv[-1]])
                 self.linhas.append(lin)
+
+            ti += self.passo
+
+    def iteracaos(self, matx, maty, matz):
+        si = 0
+        while si <= 1:                   ####################### mudar aqui talvez (Se mudar aqui mudar a linha 133)####################### 
+            x = matx.subs(s, si)
+            y = maty.subs(s, si)
+            z = matz.subs(s, si)
+            self.coordCurv.append((x[0,0],y[0,0],z[0,0]))
+            
+            if si != self.passo and si != 0:
+                lin = Line("_", [self.coordCurv[-2], self.coordCurv[-1]])
+                self.linhas.append(lin)
+
+            si += self.passo
 
 
     def superf_clipping(self, clipeLinha):

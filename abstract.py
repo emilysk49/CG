@@ -10,6 +10,7 @@ class Tipo(Enum):
     CURVE = 5
     ARAME = 6
     SUPERFICIE = 7
+    SUPERFICIEB = 8
 
 
 class ObjetoGrafico(ABC):

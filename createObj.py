@@ -8,6 +8,7 @@ from window import Window
 from curve import Curve
 from arame import Arame
 from superficie import Superficie
+from superficieB import SuperficieB
 
 class CreateObj():
     def __init__(self, window):
@@ -25,6 +26,7 @@ class CreateObj():
         Button(self.pop, text="Curva", width=5, command=lambda:self.w.levantar_frame(self.curve_frame, self.p4_frame, self.p_frame)).place(x=10,y=100)
         Button(self.pop, text="Arame", width=5, command=lambda:self.w.levantar_frame(self.arame_frame)).place(x=10,y=130)
         Button(self.pop, text="Superficie", width=5, command=lambda:self.w.levantar_frame(self.superf_frame)).place(x=10,y=160)
+        Button(self.pop, text="Sup Spline", width=5, command=lambda:self.w.levantar_frame(self.superfs_frame)).place(x=10,y=190)
 
         ############################################## PONTO #########################################################
         self.point_frame = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=300, height=300)
@@ -260,7 +262,7 @@ class CreateObj():
         self.msg_label6 = Label(self.arame_frame, text="", bg="gray")
         self.msg_label6.place(x=10, y=270)
 
-        ######################################################### Superficie #############################################################
+        ######################################################### Superficie Bezier #############################################################
         self.cont = 16
         
         self.superf_frame = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=300, height=300)
@@ -282,12 +284,60 @@ class CreateObj():
         self.msgInf_label.place(x=10, y=150)
         self.msgErr_label = Label(self.superf_frame, text="", bg="gray")
         self.msgErr_label.place(x=10, y=200)
-
+        
+        ######################################################### SUPERFICIE B-SPLINE ###########################################################
+        
+        self.superfs_frame = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=300, height=300)
+        self.superfs_frame.place(x=100, y=0) 
+        Label(self.superfs_frame, bg="gray", text="Nome :").place(x=5, y=5)
+        self.nome_superfs = Entry(self.superfs_frame, width=12)
+        self.nome_superfs.place(x=52, y=5)
+        Label(self.superfs_frame, bg="gray", text="Coloque pontos dessa forma:", anchor="w").place(x=0,y=40)
+        Label(self.superfs_frame, bg="gray", text="(x11,y11,z11),(x12,y12,z12),...;...(xij,yij,zij)").place(x=0,y=70)
+        self.supBS = Entry(self.superfs_frame)
+        self.supBS.place(x=25, y=100)
+        Button(self.superfs_frame, text="CONCLUIR", command=lambda:self.criar_supspline()).place(x=50, y=150)
+        self.msgErrsupS_label = Label(self.superfs_frame, text="", bg="gray")
+        self.msgErrsupS_label.place(x=10, y=200)
 
         ######################################################## INICIAL ###################################################################
         self.pop_padrao = Frame(self.pop, bg="gray", borderwidth=1, relief="raised", width=300, height=300)
         self.pop_padrao.place(x=100, y=0) 
         Label(self.pop_padrao, text="Selecione objeto que \n quer desenhar!", bg="gray").place(x=50, y=120)
+
+    def criar_supspline(self):
+        nome = self.nome_superfs.get()
+        if not (nome in self.w.obj_dict.keys()):
+
+                a = self.supBS.get()                                        #"(1,4,5),(4,6,7);(2,6,7),(1,4,6)"
+                a = a.strip("()")                                           #"1,4,5),(4,6,7);(2,6,7),(1,4,6"
+                a = a.replace("(", "").replace(");", ";").replace(")", ",") #"1,4,5,,4,6,7;2,6,7,,1,4,6"
+
+                linhas = a.split(";")                                       #"[1,4,5,,4,6,7] [2,6,7,,1,4,6]"
+                matriz = []
+
+                for i in range(len(linhas)):
+                    linha = linhas[i]
+                    matriz.append([])
+                    elementos = linha.split(",,")                           #"[["1,4,5"], ["4,6,7"]]       [["2,6,7"], ["1,4,6"]]"
+                    for elemento in elementos:
+                        num = elemento.split(',')                           #["1", "4", "5"]
+                        matriz[i].append([float(element) for element in num])
+
+                
+                self.w.obj_dict[nome] = SuperficieB(nome, matriz) 
+                self.w.obj_dict[nome].moverXY(self.w.mathomo, True)
+                mat = self.w.gerarDescricaoSCN()              #gerar descricao de SCN
+                self.w.obj_dict[nome].normalize(mat)          #normaliza objeto criado
+                var = self.w.clip_selection.get()
+                self.w.obj_dict[nome].superf_clipping(var)
+                #fazer mensagem de deu certo
+                self.w.redesenhar()
+                
+                #self.msgInf_label.config(text=mensagem, foreground="black")
+                self.msgErrsupS_label.config(text="")
+        else:
+            self.msgErrsupS_label.config(text="Nome já existente!", foreground="red")
 
 
     def add_ponto_superf(self):
@@ -530,23 +580,4 @@ class CreateObj():
             self.msg_label5.config(text="Apenas números!", foreground="red")
 
         
-'''
-import tkinter as tk
 
-root = tk.Tk()
-
-# criar uma variável StringVar e atribuir ela como valor para a opção textvariable do Label
-var_text = tk.StringVar(value="Olá, mundo!")
-label = tk.Label(root, textvariable=var_text)
-label.pack()
-
-# função para atualizar o valor da variável StringVar
-def atualizar_texto():
-    var_text.set("Novo texto!")
-
-# botão para chamar a função que atualiza o texto
-botao = tk.Button(root, text="Atualizar texto", command=atualizar_texto)
-botao.pack()
-
-root.mainloop()
-'''

@@ -57,11 +57,11 @@ class Interface():
 
         #self.windowObj = Window("Window", [(0.5,2,2.5),(1,0,3),(2.5,2,0.5),(3,0,1)]) #BE BD CD CE
 
-
         #self.windowObj = Window("Window", [(0.5,2,2.5),(2.5,2,0.5),(3,0,1),(1,0,3)]) #BE BD CD CE INVERTIDO (olhando a partir do centro)
         #self.windowObj = Window("Window", [(2.5,2,0.5),(0.5,2,2.5),(1,0,3),(3,0,1)]) #NORMAL (olhando como uma pessoa veria)
 
-
+        #self.windowObj = Window("Window", [(-24.27, 29.27, 22.5), (-29.27, 24.27, 22.5), (-25.73, 20.73, 27.5), (-20.73, 25.73, 27.5)])
+        #self.windowObj = Window("Window", [(-11.27, 16.27, 9.5), (-16.27, 11.27, 9.5), (-12.73, 7.73, 14.5), (-7.73, 12.73, 14.5)])
 
         #self.windowObj = Window("Window", [(2.28,-7.78,-13.28),(13.27,7.77,-2.28),(-2.28,7.78,13.28),(-13.28,-7.78,2.28)]) #BE BD CD CE
         self.windowObj = Window("Window")
@@ -199,7 +199,7 @@ class Interface():
     #zoomin -> aproxima os pontos da window
     def zoomIn(self):
         #zoomin: escalonando para diminuir a tela do window
-        mat1 = self.alinhar_eixoZ(False)
+        mat1 = self.alinhar_eixoZ(False, True)
         self.windowObj.moverXY(mat1)
         mat2 = [[0.9, 0, 0, 0],[0, 0.9, 0, 0],[0, 0, 1, 0],[0, 0, 0, 1]]
         mat3 = np.linalg.inv(mat1)
@@ -215,7 +215,7 @@ class Interface():
     #zoomout -> afasta os pontos da window
     def zoomOut(self):
         #zoomout: escalonando para aumentar a tela do window
-        mat1 = self.alinhar_eixoZ(False)
+        mat1 = self.alinhar_eixoZ(False, True)
 
         self.windowObj.moverXY(mat1)
         mat2 = [[1.1, 0, 0, 0],[0, 1.1, 0, 0],[0, 0, 1, 0],[0, 0, 0, 1]]
@@ -235,10 +235,11 @@ class Interface():
         #atualiza o angulo do window para rotacionar
         
         mat1 = self.alinhar_eixoZ(False, True)  #segundo argumento trata de receber uma matriz com a normal realmente dentro do eixo Z
-        self.windowObj.moverXY(mat1)            #caso não setarmos como True, alinhar_eixoZ vai realizar uma destranslação e devolver a matriz deslocada (apenas no plano xy)
+        #self.windowObj.moverXY(mat1)            #caso não setarmos como True, alinhar_eixoZ vai realizar uma destranslação e devolver a matriz deslocada (apenas no plano xy)
         mat2 = self.rotacionar3D(ang, sentido)      #mas não com sua normal dentro do eixo Z
         mat3 = np.linalg.inv(mat1)
-        res = np.matmul(mat2,mat3)
+        res = np.matmul(mat1, mat2)
+        res = np.matmul(res,mat3)
         self.windowObj.moverXY(res)
         self.projecao()
         
@@ -248,10 +249,10 @@ class Interface():
     def move(self, tup):
         mat1 = self.alinhar_eixoZ(False)
         self.windowObj.moverXY(mat1)
-        mat2 = self.rotacionar3D(-self.windowObj.angulo, "z")   #se nao der certo tirar o - e ver...
+        mat2 = self.rotacionar3D(self.windowObj.angulo, "z")   #se nao der certo tirar o - e ver...
         mat3 = self.transladar3D(tup[0],tup[1],tup[2])
         res = np.matmul(mat2,mat3)
-        mat4 = self.rotacionar3D(self.windowObj.angulo, "z")
+        mat4 = self.rotacionar3D(-self.windowObj.angulo, "z")
         res = np.matmul(res,mat4)
         mat5 = np.linalg.inv(mat1)
         res = np.matmul(res,mat5)
@@ -302,7 +303,7 @@ class Interface():
                                                                                                 #Se for, atenção ao caso de uma saida e uma entrada seguida, ao isso acontecer não trace entre
                     self.canvas.create_line(self.xvp(tup[i][0][0]), self.yvp(tup[i][0][1]), self.xvp(tup[i+1][0][0]), self.yvp(tup[i+1][0][1]), fill=obj.cor, width=3)
         
-        elif obj.tipo == 5 or obj.tipo == 7: #se curva ou se superficie
+        elif obj.tipo == 5 or obj.tipo == 7 or obj.tipo == 8: #se curva ou se superficie
             #print("ACHOU UMA CURVA")
             for lin in obj.linhas:
                 if lin.desenhavel:
@@ -651,7 +652,7 @@ class Interface():
         elif (obj.tipo == 6):
             var = self.clip_selection.get()
             obj.arame_clipping(var)
-        elif (obj.tipo == 7):
+        elif (obj.tipo == 7 or obj.tipo == 8):
             var = self.clip_selection.get()
             obj.superf_clipping(var)
         self.redesenhar()
@@ -693,7 +694,7 @@ class Interface():
     def gerarDescricaoSCN(self):
         #trasladar o centro do window para origem
         #mat1 = self.transladar2D(-self.windowObj.centroXHomo, -self.windowObj.centroYHomo) 
-        mat2 = self.rotacionar2D(-self.windowObj.angulo)
+        mat2 = self.rotacionar2D(self.windowObj.angulo)
         #print(f"angulo de window: {self.windowObj.angulo}")
 
         #escalona para normalizar em SCN [-1,1]
@@ -723,7 +724,7 @@ class Interface():
             elif (obj.tipo == 6):
                 var = self.clip_selection.get()
                 obj.arame_clipping(var)
-            elif (obj.tipo == 7):
+            elif (obj.tipo == 7 or obj.tipo == 8):
                 var = self.clip_selection.get()
                 obj.superf_clipping(var)
         self.eixoY.normalize(mat)
@@ -796,7 +797,7 @@ class Interface():
             self.projPerspectiva()
             
     
-    def projPerspectiva(self, d=3): #padronizando 3 unidade para tras
+    def projPerspectiva(self, d=1): #padronizando 3 unidade para tras
         """
         2. Determine os ângulos de VPN com X e Y
         3. Rotacione o mundo em torno de X e Y de forma a alinhar VPN com o eixo Z
@@ -872,6 +873,7 @@ class Interface():
         x, y, z = self.windowObj.centroX, self.windowObj.centroY, self.windowObj.centroZ
         
         mat1 = self.transladar3D(-x,-y,-z)
+        
         vetor1 = []
         vetor2 = []
         for i in range(3):
@@ -885,7 +887,6 @@ class Interface():
 
         anguloX = np.degrees(np.arctan(tanx))
 
- 
         mat2 = self.rotacionar3D(anguloX, "x")
         mat = np.matmul(mat1,mat2)
         self.windowObj.moverXY(mat, True)
@@ -903,7 +904,7 @@ class Interface():
         tany = normal[0]/normal[2] #x/z
         anguloY = -np.degrees(np.arctan(tany))
 
-
+        #print(anguloY)
         mat3 = self.rotacionar3D(anguloY, "y")
 
         res = np.matmul(mat, mat3)

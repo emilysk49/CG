@@ -34,10 +34,8 @@ class Window(ObjetoGrafico):
             self.calc_centro()
 
         self.calc_centro_homo()
+        #print(f"As coordenadas da window são: {self.coordenadas}")
 
-            
-    def normalize(self, mat: np.matrix):
-        self.coordNorm = self.mulPontoMat2D(mat)
 
 
     def calc_angulo(self):

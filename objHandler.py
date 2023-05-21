@@ -6,14 +6,18 @@ from polygon import Polygon
 class MTLReader:
     def __init__(self, name):
         self.colors = {}
-
-        with open(name, "r") as f:
+        caminho = f"obj/{name}"
+        with open(caminho, "r") as f:
             for line in f:
+                if line.startswith("# "):
+                    continue
                 if line.startswith("newmtl "):
                     color_name = line.split()[1]
                 if line.startswith("Kd "):
                     color_rgb = list(map(float, line.split()[1:]))
                     self.colors[color_name] = color_rgb
+                else:
+                    continue
 
 class ObjHandler:
     def __init__(self):
@@ -25,11 +29,15 @@ class ObjHandler:
         self.matlib = str
         
         
+        
     def open_file(self):
         
         file_path = filedialog.askopenfilename()
         with open(file_path, "r") as f:
             color = ""
+            obj_name = ""
+            group_name = ""
+            polygon = 0
             while True:
                 line = f.readline()
                 if line.startswith("v "):
@@ -41,6 +49,8 @@ class ObjHandler:
                 elif line.startswith("vt "):
                     texcoord = list(map(float, line.split()[1:]))
                     self.texcoords.append(texcoord)
+                elif line.startswith("# "):
+                    continue
                 #elif line.startswith("f "):
                 #    face = []
                 #    for vertex_desc in line.split()[1:]:
@@ -70,9 +80,34 @@ class ObjHandler:
                     self.objects.append(ponto)
         
                 elif line.startswith("l ") or line.startswith("f "):    #depois face terá sua propria implementação com preenchimento 
-                    v_index = list(map(int, line.split()[1:]))
-                    if len(v_index) > 2:
+                    #v_index = list(map(int, line.split()[1:]))
+                    ################################################### MUDEI #################################################################
+                    v_index = list(line.split()[1:])
+
+                    index = []
+                    if "/" in str(v_index[0]):                              #caso seja f v/vt/vn
+                        pontos = []
+                        for vertexs in v_index:
+                            v, *_ = vertexs.split('/')                  #pega apenas v
+                            index.append(int(v))
+                        for i in index:
+                            pontos.append((self.vertices[i-1][0], self.vertices[i-1][1], self.vertices[i-1][2]))
+                        if obj_name == "":                           #caso nao tem nome definido no .obj (exemplo do teapot)
+                            obj_name = f"DEFAULT{polygon}" 
+                        poligono = Polygon(obj_name, pontos)
+                        polygon += 1
+                        obj_name = ""
+                        if (color != ""):
+                            r = int(self.matlib.colors[color][0] * 255)
+                            g = int(self.matlib.colors[color][1] * 255)
+                            b = int(self.matlib.colors[color][2] * 255)
+                            color = ""
+                            poligono.cor = self.rgb_to_hex(r,g,b)
+                        self.objects.append(poligono)
+                    #####################################################################################################################
+                    elif len(v_index) > 2:                                #caso seja poligono 
                         #poligono
+                        v_index = list(map(int, v_index))
                         pontos = []
                         if v_index[0] > 0:
                             for i in v_index:
@@ -80,7 +115,10 @@ class ObjHandler:
                         else:
                             for i in v_index:
                                 pontos.append((self.vertices[i][0], self.vertices[i][1], self.vertices[i][2]))
+                        if obj_name == "":                           #caso nao tem nome definido no .obj (exemplo do teapot)
+                            obj_name = f"POLYGONDEFAULT{polygon}" 
                         poligono = Polygon(obj_name, pontos)
+                        polygon += 1
                         obj_name = ""
                         if (color != ""):
                             r = int(self.matlib.colors[color][0] * 255)
@@ -91,6 +129,7 @@ class ObjHandler:
                         self.objects.append(poligono)
                     else:
                         #linha
+                        v_index = list(map(int, v_index))
                         if v_index[0] > 0:
                             line = [(self.vertices[v_index[0]-1][0], self.vertices[v_index[0]-1][1], self.vertices[v_index[0]-1][2]),
                                     (self.vertices[v_index[1]-1][0], self.vertices[v_index[1]-1][1], self.vertices[v_index[1]-1][2])]
@@ -106,6 +145,9 @@ class ObjHandler:
                             color = ""
                             linha.cor = self.rgb_to_hex(r,g,b)
                         self.objects.append(linha)
+                #elif line.startswith("g "):                                  #arame 
+                #    group_name = line.split()[1]
+                #    obj_name =""
                 
                 if (not line):
                     break
@@ -130,18 +172,17 @@ class ObjHandler:
                 for i in coord:
                     f.write(f"v {i[0]} {i[1]} {i[2]}\n")
             
-                if (tipo == 1):
+                if (tipo == 1):                                 #ponto
                     f.write("p -1\n")
-                elif (tipo == 2):
+                elif (tipo == 2):                               #linha
                     f.write("l -2 -1\n")
-                elif (tipo == 3):
-                    print("poligono")
+                elif (tipo == 3):                               #poligono
                     f.write("l ")
                     for i in range(len(coord)):
                         num = (i*-1)-1
                         f.write(f"{num} ")
                     f.write("\n")
-                elif (tipo == 5):
+                elif (tipo == 5):                               #curva
                     for i in range(len(coord),1,-1):
                         num = (i*-1)
                         if i != len(coord):

@@ -737,12 +737,12 @@ class Interface():
         #var = self.clip_selection.get()
         objeto = self.obj.open_file()
 
-        self.object_list.insert(END, objeto.nome)         #insere o nome do objeto na listbox
-        self.obj_dict[objeto.nome] = objeto
+        #self.object_list.insert(END, objeto.nome)         #insere o nome do objeto na listbox
+        #self.obj_dict[objeto.nome] = objeto
 
-        #for o in objeto:
-        #    self.object_list.insert(END, o.nome)         #insere o nome do objeto na listbox
-        #    self.obj_dict[o.nome] = o                    #adiciona o ponto no dicionario de objetos, chave = nome
+        for o in objeto:
+            self.object_list.insert(END, o.nome)         #insere o nome do objeto na listbox
+            self.obj_dict[o.nome] = o                    #adiciona o ponto no dicionario de objetos, chave = nome
             #mat = self.gerarDescricaoSCN()               #gera descricao de SCN
             #self.obj_dict[o.nome].normalize(mat)         #normaliza objeto criado
         

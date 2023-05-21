@@ -37,10 +37,10 @@ class ObjHandler:
         with open(file_path, "r") as f:
             color = ""
             obj_name = ""
-            #group_name = ""
-            arame = []
+            grupo = []
             polygon = 0
             l = 0
+            p = 0
             while True:
                 line = f.readline()
                 if line.startswith("v "):
@@ -63,7 +63,12 @@ class ObjHandler:
                 elif line.startswith("mtllib "):
                     self.matlib = MTLReader(line.split()[1])
                 elif line.startswith("o ") or line.startswith("g "):
+                    if self.objects != []:
+                        arame = Arame(obj_name, self.objects)
+                        grupo.append(arame)
+                        self.objects = []
                     obj_name = line.split()[1]
+                    #grupo_atual = obj_name
                 elif line.startswith("usemtl "):
                     color = line.split()[1]
                     c = color.split(".")
@@ -75,8 +80,12 @@ class ObjHandler:
                         point = [(self.vertices[v_index[0]-1][0], self.vertices[v_index[0]-1][1], self.vertices[v_index[0]-1][2])]
                     else:
                         point = [(self.vertices[v_index[0]][0], self.vertices[v_index[0]][1], self.vertices[v_index[0]][2])]
+
+                    if obj_name == "":
+                        obj_name = f"POINTDEFAULT{p}"
                     ponto = Point(obj_name, point)
-                    obj_name = ""
+                    p += 1
+                    #obj_name = ""
                     if (color != ""):
                         r = int(self.matlib.colors[color][0] * 255)
                         g = int(self.matlib.colors[color][1] * 255)
@@ -99,10 +108,10 @@ class ObjHandler:
                         for i in index:
                             pontos.append((self.vertices[i-1][0], self.vertices[i-1][1], self.vertices[i-1][2]))
                         if obj_name == "":                           #caso nao tem nome definido no .obj (exemplo do teapot)
-                            obj_name = f"DEFAULT{polygon}" 
+                            obj_name = f"POLYGONDEFAULT{polygon}" 
                         poligono = Polygon(obj_name, pontos)
                         polygon += 1
-                        obj_name = ""
+                        #obj_name = ""
                         if (color != ""):
                             r = int(self.matlib.colors[color][0] * 255)
                             g = int(self.matlib.colors[color][1] * 255)
@@ -125,7 +134,7 @@ class ObjHandler:
                             obj_name = f"POLYGONDEFAULT{polygon}" 
                         poligono = Polygon(obj_name, pontos)
                         polygon += 1
-                        obj_name = ""
+                        #obj_name = ""
                         if (color != ""):
                             r = int(self.matlib.colors[color][0] * 255)
                             g = int(self.matlib.colors[color][1] * 255)
@@ -143,10 +152,10 @@ class ObjHandler:
                             line = [(self.vertices[v_index[0]][0], self.vertices[v_index[0]][1], self.vertices[v_index[0]][2]),
                                     (self.vertices[v_index[1]][0], self.vertices[v_index[1]][1], self.vertices[v_index[1]][2])]
                         if obj_name == "":
-                            obj_name = f"LINE{l}"
+                            obj_name = f"LINEDEFAULT{l}"
                         linha = Line(obj_name, line)
                         l += 1
-                        obj_name = ""
+                        #obj_name = ""
                         if (color != ""):
                             r = int(self.matlib.colors[color][0] * 255)
                             g = int(self.matlib.colors[color][1] * 255)
@@ -159,15 +168,15 @@ class ObjHandler:
                 #    obj_name =""
                 
                 if (not line):
-                    nomeobj = file_path.split("/")
-                    nome = nomeobj[-1].split(".")                    
-                    arame = Arame(nome[0], self.objects)
+                    #nomeobj = file_path.split("/")
+                    #nome = nomeobj[-1].split(".")                    
+                    #arame = Arame(nome[0], self.objects)
                     break
                 
                 #print(self.objects)
                 #arame = Arame("GRUPO", self.objects)
             #return self.objects
-            return arame
+            return grupo
 
 
     def write_file(self, dict_list):

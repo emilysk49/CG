@@ -761,10 +761,10 @@ class Interface():
     def exportar(self):
         list_obj = []
         for obj in self.obj_dict.values():
-            if obj.tipo == 5:                                #curva
-                mat = self.gerarDescricaoSCN()               #precisa de matriz para desnormalizar as coordenadas de curvas
+            if obj.tipo == 5 or obj.tipo == 7 or obj.tipo == 8: #curva, superficie (bezier) ou superficie (b-spline)
+                mat = self.gerarDescricaoSCN()                  #precisa de matriz para desnormalizar as coordenadas de curvas
                 list_obj.append(obj.export(mat))
-            elif obj.tipo == 6:                              #arame
+            elif obj.tipo == 6:                                 #arame
                 for object in obj.obj_list:
                     if object.tipo == 5:
                         mat = self.gerarDescricaoSCN()

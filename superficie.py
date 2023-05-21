@@ -165,4 +165,21 @@ class Superficie(ObjetoGrafico):
         exit()
     
     def export(self, mat: np.matrix):
-        pass
+        exp = {}
+        exp["nome"] = self.nome 
+        mat = np.linalg.inv(mat)    #"Desnormalizando" pois nós guardamos as coordCurv já normalizadas para melhor desempenho
+        coord = []
+        for line in self.linhas:
+            ponto1 = [line.coordenadas[0][0],line.coordenadas[0][1],line.coordenadas[0][2]]
+            ponto2 = [line.coordenadas[1][0],line.coordenadas[1][1],line.coordenadas[0][2]]
+            #result1 = np.matmul(ponto1, mat)
+            #result2 = np.matmul(ponto2, mat)
+            #coord.append((result1.item(0),result1.item(1),1))
+            #coord.append((result2.item(0),result2.item(1),1))
+            coord.append(ponto1)
+            coord.append(ponto2)
+        exp["coord"] = coord
+        exp["cor"] = self.cor
+        exp["tipo"] = self.tipo
+       
+        return exp

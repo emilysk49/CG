@@ -64,8 +64,11 @@ class ObjHandler:
                     self.matlib = MTLReader(line.split()[1])
                 elif line.startswith("o ") or line.startswith("g "):
                     if self.objects != []:
-                        arame = Arame(obj_name, self.objects)
-                        grupo.append(arame)
+                        if len(self.objects) == 1:                    #caso so tem um objeto guarda ele msm 
+                            grupo.append(self.objects[0])
+                        else:                                         #caso tenha mais objetos cria arame
+                            arame = Arame(obj_name, self.objects)
+                            grupo.append(arame)
                         self.objects = []
                     obj_name = line.split()[1]
                     #grupo_atual = obj_name
@@ -171,6 +174,12 @@ class ObjHandler:
                     #nomeobj = file_path.split("/")
                     #nome = nomeobj[-1].split(".")                    
                     #arame = Arame(nome[0], self.objects)
+                    if self.objects != []:
+                        if len(self.objects) == 1:                    #caso so tem um objeto guarda ele msm 
+                            grupo.append(self.objects[0])
+                        else:                                         #caso tenha mais objetos cria arame
+                            arame = Arame(obj_name, self.objects)
+                            grupo.append(arame)
                     break
                 
                 #print(self.objects)
@@ -213,6 +222,12 @@ class ObjHandler:
                             nome = f"LINECURVE{i+1}"
                             f.write(f"o {nome}\n")
                             f.write(f"usemtl {cor}\n")
+                        f.write(f"l {num} {num+1}\n")
+                elif (tipo == 7) or (tipo == 8):                #superficie
+                    f.write(f"g {nome}\n")
+                    f.write(f"usemtl {cor}\n")
+                    for i in range(len(coord),1,-2):
+                        num = (i*-1)
                         f.write(f"l {num} {num+1}\n")
                 
         with open(file_name+".mtl", "a") as f:

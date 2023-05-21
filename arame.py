@@ -48,15 +48,19 @@ class Arame(ObjetoGrafico):
 
     def arame_clipping(self, clipeLinha):
         for obj in self.obj_list:
-            if obj.tipo == 1:
+            if obj.tipo == 1:           #ponto
                 obj.ponto_clipping()
-            elif obj.tipo == 2:
+            elif obj.tipo == 2:         #linha
                 if clipeLinha == "l":
                     obj.liang_barsky()
                 else:
                     obj.cohen_sutherland()
-            elif obj.tipo == 5:
+            elif obj.tipo == 3:
+                obj.weiler_atherton()   #poligono
+            elif obj.tipo == 5:         #curva
                 obj.curv_clipping()
+            elif obj.tipo == 7 or obj.tipo == 8:
+                obj.superf_clipping(clipeLinha)
                 
 
     

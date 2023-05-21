@@ -2,6 +2,7 @@ from tkinter import filedialog, simpledialog
 from point import Point
 from line import Line
 from polygon import Polygon
+from arame import Arame
 
 class MTLReader:
     def __init__(self, name):
@@ -36,8 +37,10 @@ class ObjHandler:
         with open(file_path, "r") as f:
             color = ""
             obj_name = ""
-            group_name = ""
+            #group_name = ""
+            arame = []
             polygon = 0
+            l = 0
             while True:
                 line = f.readline()
                 if line.startswith("v "):
@@ -63,6 +66,9 @@ class ObjHandler:
                     obj_name = line.split()[1]
                 elif line.startswith("usemtl "):
                     color = line.split()[1]
+                    c = color.split(".")
+                    if len(c) > 1:
+                        color = c[0]
                 elif line.startswith("p "):
                     v_index = list(map(int, line.split()[1:]))
                     if (v_index[0] > 0) :
@@ -136,7 +142,10 @@ class ObjHandler:
                         else:
                             line = [(self.vertices[v_index[0]][0], self.vertices[v_index[0]][1], self.vertices[v_index[0]][2]),
                                     (self.vertices[v_index[1]][0], self.vertices[v_index[1]][1], self.vertices[v_index[1]][2])]
+                        if obj_name == "":
+                            obj_name = f"LINE{l}"
                         linha = Line(obj_name, line)
+                        l += 1
                         obj_name = ""
                         if (color != ""):
                             r = int(self.matlib.colors[color][0] * 255)
@@ -150,9 +159,15 @@ class ObjHandler:
                 #    obj_name =""
                 
                 if (not line):
+                    nomeobj = file_path.split("/")
+                    nome = nomeobj[-1].split(".")                    
+                    arame = Arame(nome[0], self.objects)
                     break
-
-            return self.objects
+                
+                #print(self.objects)
+                #arame = Arame("GRUPO", self.objects)
+            #return self.objects
+            return arame
 
 
     def write_file(self, dict_list):

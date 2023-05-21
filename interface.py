@@ -734,12 +734,15 @@ class Interface():
     
 
     def importar(self):
-        var = self.clip_selection.get()
-        objetos = self.obj.open_file()
+        #var = self.clip_selection.get()
+        objeto = self.obj.open_file()
 
-        for o in objetos:
-            self.object_list.insert(END, o.nome)         #insere o nome do objeto na listbox
-            self.obj_dict[o.nome] = o                    #adiciona o ponto no dicionario de objetos, chave = nome
+        self.object_list.insert(END, objeto.nome)         #insere o nome do objeto na listbox
+        self.obj_dict[objeto.nome] = objeto
+
+        #for o in objeto:
+        #    self.object_list.insert(END, o.nome)         #insere o nome do objeto na listbox
+        #    self.obj_dict[o.nome] = o                    #adiciona o ponto no dicionario de objetos, chave = nome
             #mat = self.gerarDescricaoSCN()               #gera descricao de SCN
             #self.obj_dict[o.nome].normalize(mat)         #normaliza objeto criado
         
@@ -848,7 +851,6 @@ class Interface():
         6.	Clippe
         7.	Transforme para coordenadas de Viewport 
         """
-        
         self.mathomo = self.alinhar_eixoZ(True)
         
         ##########################

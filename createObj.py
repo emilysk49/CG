@@ -306,39 +306,41 @@ class CreateObj():
         Label(self.pop_padrao, text="Selecione objeto que \n quer desenhar!", bg="gray").place(x=50, y=120)
 
     def criar_supspline(self):
-        nome = self.nome_superfs.get()
-        if not (nome in self.w.obj_dict.keys()):
+        try:
+            nome = self.nome_superfs.get()
+            if not (nome in self.w.obj_dict.keys()):
 
-                a = self.supBS.get()                                        #"(1,4,5),(4,6,7);(2,6,7),(1,4,6)"
-                a = a.strip("()")                                           #"1,4,5),(4,6,7);(2,6,7),(1,4,6"
-                a = a.replace("(", "").replace(");", ";").replace(")", ",") #"1,4,5,,4,6,7;2,6,7,,1,4,6"
+                    a = self.supBS.get()                                        #"(1,4,5),(4,6,7);(2,6,7),(1,4,6)"
+                    a = a.strip("()")                                           #"1,4,5),(4,6,7);(2,6,7),(1,4,6"
+                    a = a.replace("(", "").replace(");", ";").replace(")", ",") #"1,4,5,,4,6,7;2,6,7,,1,4,6"
 
-                linhas = a.split(";")                                       #"[1,4,5,,4,6,7] [2,6,7,,1,4,6]"
-                matriz = []
+                    linhas = a.split(";")                                       #"[1,4,5,,4,6,7] [2,6,7,,1,4,6]"
+                    matriz = []
 
-                for i in range(len(linhas)):
-                    linha = linhas[i]
-                    matriz.append([])
-                    elementos = linha.split(",,")                           #"[["1,4,5"], ["4,6,7"]]       [["2,6,7"], ["1,4,6"]]"
-                    for elemento in elementos:
-                        num = elemento.split(',')                           #["1", "4", "5"]
-                        matriz[i].append([float(element) for element in num])
+                    for i in range(len(linhas)):
+                        linha = linhas[i]
+                        matriz.append([])
+                        elementos = linha.split(",,")                           #"[["1,4,5"], ["4,6,7"]]       [["2,6,7"], ["1,4,6"]]"
+                        for elemento in elementos:
+                            num = elemento.split(',')                           #["1", "4", "5"]
+                            matriz[i].append([float(element) for element in num])
 
-                
-                self.w.obj_dict[nome] = SuperficieB(nome, matriz) 
-                self.w.obj_dict[nome].moverXY(self.w.mathomo, True)
-                mat = self.w.gerarDescricaoSCN()              #gerar descricao de SCN
-                self.w.obj_dict[nome].normalize(mat)          #normaliza objeto criado
-                var = self.w.clip_selection.get()
-                self.w.obj_dict[nome].superf_clipping(var)
-                #fazer mensagem de deu certo
-                self.w.redesenhar()
-                
-                #self.msgInf_label.config(text=mensagem, foreground="black")
-                self.msgErrsupS_label.config(text="")
-        else:
-            self.msgErrsupS_label.config(text="Nome já existente!", foreground="red")
-
+                    
+                    self.w.object_list.insert(END, nome)
+                    self.w.obj_dict[nome] = SuperficieB(nome, matriz) 
+                    self.w.obj_dict[nome].moverXY(self.w.mathomo, True)
+                    mat = self.w.gerarDescricaoSCN()              #gerar descricao de SCN
+                    self.w.obj_dict[nome].normalize(mat)          #normaliza objeto criado
+                    var = self.w.clip_selection.get()
+                    self.w.obj_dict[nome].superf_clipping(var)
+                    #fazer mensagem de deu certo
+                    self.w.redesenhar()
+                    
+                    self.msgErrsupS_label.config(text="")
+            else:
+                self.msgErrsupS_label.config(text="Nome já existente!", foreground="red")
+        except:
+            self.msgErrsupS_label.config(text="Dados em formato incorreto!", foreground="red")
 
     def add_ponto_superf(self):
         try:
@@ -351,7 +353,6 @@ class CreateObj():
                 
                 self.cont = 16-len(self.w.pontos_sup)
                 self.w.sup_msg.set(f"Adicione mais {self.cont} pontos")
-                #self.msgInf_label.config(text=mensagem, foreground="black")
                 self.msgErr_label.config(text="")
                 if self.cont == 0:
                     self.criar_superficie()
@@ -417,8 +418,7 @@ class CreateObj():
             self.arame_list.delete(0, END)  #apaga os objetos que agora fazem parte de um arame
         else:
             self.msg_label6.config(text="Nome já existente!", foreground="red")
-        #except:
-        #    self.msg_label6.config(text="Ocorreu um erro... Desculpe", foreground="red")
+
 
 
     def criar_ponto(self):
@@ -509,7 +509,8 @@ class CreateObj():
             #self.w.obj_dict[nome].moverXY(self.w.mathomo, True)   talvez um control V aqui do nada, não fazemos ideia do porque dessa linha...
             mat = self.w.gerarDescricaoSCN()              #gerar descricao de SCN
             self.w.obj_dict[nome] = Curve(nome, pontos, mat, tipo)    #curva já tem seus pontos normalizados na criação
-            #self.obj_dict[nome].normalize(mat)          #normaliza objeto criado
+            self.w.obj_dict[nome].moverXY(self.w.mathomo, True) #projecao 
+            self.w.obj_dict[nome].normalize(mat)          #normaliza objeto criado
             var = self.w.clip_selection.get()
             self.w.obj_dict[nome].curv_clipping(var)
             self.w.redesenhar()

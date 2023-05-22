@@ -63,8 +63,10 @@ class Interface():
         #self.windowObj = Window("Window", [(-24.27, 29.27, 22.5), (-29.27, 24.27, 22.5), (-25.73, 20.73, 27.5), (-20.73, 25.73, 27.5)])
         #self.windowObj = Window("Window", [(-11.27, 16.27, 9.5), (-16.27, 11.27, 9.5), (-12.73, 7.73, 14.5), (-7.73, 12.73, 14.5)])
 
+        self.windowObj = Window("Window", [(-11,-11,-5),(11,-11,-5),(11,11,-5),(-11,11,-5)])
+
         #self.windowObj = Window("Window", [(2.28,-7.78,-13.28),(13.27,7.77,-2.28),(-2.28,7.78,13.28),(-13.28,-7.78,2.28)]) #BE BD CD CE
-        self.windowObj = Window("Window")
+        #self.windowObj = Window("Window")
         #self.windowObj = Window("Window", [(0,5,0),(5,0,0),(5,0,5),(0,5,5)])
         #self.windowObj = Window("Window", [(5,0,0),(0,5,0),(0,5,5),(5,0,5)])
 
@@ -124,9 +126,6 @@ class Interface():
         self.direita = ImageTk.PhotoImage(Image.open("image/direita.png").resize((30,30), Image.ANTIALIAS))
         Button(self.tool_frame, image=self.direita, command=lambda:self.rotacionarWin(15, "z")).place(x=85, y=160)
         Button(self.tool_frame, image=self.esquerda, command=lambda:self.rotacionarWin(-15, "z")).place(x=45, y=160)
-
-        #self.eixos_frame = Frame(self.tool_frame, relief="raised", borderwidth=1, bg="gray")
-        #self.eixos_frame.place(x=10, y=250, width=150, height=75)
 
         self.rotE = ImageTk.PhotoImage(Image.open("image/rotE.png").resize((30,30), Image.ANTIALIAS))
         self.rotD = ImageTk.PhotoImage(Image.open("image/rotD.png").resize((30,30), Image.ANTIALIAS))
@@ -229,8 +228,6 @@ class Interface():
         self.projecao()
  
 
-
-
     def rotacionarWin(self, ang, sentido):
         #atualiza o angulo do window para rotacionar
         
@@ -310,7 +307,6 @@ class Interface():
                     tup = lin.coordClip
                     self.canvas.create_line(self.xvp(tup[0][0]), self.yvp(tup[0][1]), self.xvp(tup[1][0]), self.yvp(tup[1][1]), fill=obj.cor, width=3)
         
-
 
     def apagar_objeto(self):
         #verifica linha onde cursor selecionou
@@ -693,14 +689,10 @@ class Interface():
 
     def gerarDescricaoSCN(self):
         #trasladar o centro do window para origem
-        #mat1 = self.transladar2D(-self.windowObj.centroXHomo, -self.windowObj.centroYHomo) 
         mat2 = self.rotacionar2D(self.windowObj.angulo)
-        #print(f"angulo de window: {self.windowObj.angulo}")
 
         #escalona para normalizar em SCN [-1,1]
         mat3 = self.escalonar2D(1/(self.windowObj.escalaX/2), 1/(self.windowObj.escalaY/2))
-        #print(f"mat3 transladar: {mat3}")
-        #result = np.matmul(mat1, mat2)
         result = np.matmul(mat2, mat3)
         return result
         
@@ -734,43 +726,20 @@ class Interface():
     
 
     def importar(self):
-        #var = self.clip_selection.get()
         objeto = self.obj.open_file()
 
-        #self.object_list.insert(END, objeto.nome)         #insere o nome do objeto na listbox
-        #self.obj_dict[objeto.nome] = objeto
 
         for o in objeto:
             self.object_list.insert(END, o.nome)         #insere o nome do objeto na listbox
             self.obj_dict[o.nome] = o                    #adiciona o ponto no dicionario de objetos, chave = nome
-            #mat = self.gerarDescricaoSCN()               #gera descricao de SCN
-            #self.obj_dict[o.nome].normalize(mat)         #normaliza objeto criado
-        
-            #if (o.tipo == 1):
-            #    self.obj_dict[o.nome].ponto_clipping()
-            #elif (o.tipo == 2):
-            #    self.obj_dict[o.nome].line_clip(var)
-            #elif (o.tipo == 3):
-            #    self.obj_dict[o.nome].weiler_atherton()
-            #elif (o.tipo == 5):
-            #    self.obj_dict[o.nome].line_clip(var)
-        #print("Terminando importar")
         self.projecao()
-        #self.redesenhar()
 
     def exportar(self):
         list_obj = []
         for obj in self.obj_dict.values():
-            if obj.tipo == 5 or obj.tipo == 7 or obj.tipo == 8: #curva, superficie (bezier) ou superficie (b-spline)
-                mat = self.gerarDescricaoSCN()                  #precisa de matriz para desnormalizar as coordenadas de curvas
-                list_obj.append(obj.export(mat))
-            elif obj.tipo == 6:                                 #arame
+            if obj.tipo == 6:                                 #arame
                 for object in obj.obj_list:
-                    if object.tipo == 5:
-                        mat = self.gerarDescricaoSCN()
-                        list_obj.append(object.export(mat))
-                    else:
-                        list_obj.append(object.export()) 
+                    list_obj.append(object.export())
             else:
                 list_obj.append(obj.export())               #Cada objeto prepara uma dicionário próprio
         self.obj.write_file(list_obj)                   #para auxiliar na exportação
@@ -787,8 +756,7 @@ class Interface():
         mat4 = np.linalg.inv(mat1)
         res = np.matmul(mat3,mat4)
         self.windowObj.moverXY(res)
-        #print(f"Escala X inicial: {self.windowObj.escalaX}")
-        #print(f"Escala Y inicial: {self.windowObj.escalaY}")
+
 
     def projecao(self, alt=""):
         if alt:
@@ -800,7 +768,7 @@ class Interface():
             self.projPerspectiva()
             
     
-    def projPerspectiva(self, d=1): #padronizando 3 unidade para tras
+    def projPerspectiva(self, d=7): #padronizando 3 unidade para tras
         """
         2. Determine os ângulos de VPN com X e Y
         3. Rotacione o mundo em torno de X e Y de forma a alinhar VPN com o eixo Z
@@ -813,7 +781,6 @@ class Interface():
         mat = self.transladar3D(0,0,d) 
         mat = np.matmul(self.alinhar_eixoZ(True), mat)
 
-        #mat4 = [[1,0,0,0],[0,1,0,0], [0,0,1,0], [0,0,1/d,0]]
         mat4 = [[1,0,0,0],[0,1,0,0], [0,0,1,1/d], [0,0,0,0]]
         
         
@@ -825,16 +792,9 @@ class Interface():
             obj.moverXY(self.mathomo, True)
             obj.projete(mat4)
 
-        self.eixoX.moverXY(self.mathomo, True) 
-        #self.eixoX.projete(mat4)   
-        #print(f"eixo x: {self.eixoX.coordHomo}")     
+        self.eixoX.moverXY(self.mathomo, True)  
         self.eixoY.moverXY(self.mathomo, True)
-        #self.eixoY.projete(mat4) 
-        #print(f"eixo y: {self.eixoY.coordHomo}")
         self.eixoZ.moverXY(self.mathomo, True)
-        #self.eixoZ.projete(mat4) 
-        #print(f"eixo z: {self.eixoZ.coordHomo}")
-        
         
         self.normalizar()
         self.redesenhar()
@@ -856,16 +816,12 @@ class Interface():
         ##########################
         self.windowObj.moverXY(self.mathomo, True)
         self.windowObj.calc_angulo()
-        #print(f"window: \n{self.windowObj.coordHomo}")
         for obj in self.obj_dict.values():
             obj.moverXY(self.mathomo, True)
 
         self.eixoX.moverXY(self.mathomo, True)    
-        #print(f"eixo x: {self.eixoX.coordHomo}")     
         self.eixoY.moverXY(self.mathomo, True)
-        #print(f"eixo y: {self.eixoY.coordHomo}")
         self.eixoZ.moverXY(self.mathomo, True)
-        #print(f"eixo z: {self.eixoZ.coordHomo}")
 
         self.normalizar()
         self.redesenhar()
@@ -906,7 +862,6 @@ class Interface():
         tany = normal[0]/normal[2] #x/z
         anguloY = -np.degrees(np.arctan(tany))
 
-        #print(anguloY)
         mat3 = self.rotacionar3D(anguloY, "y")
 
         res = np.matmul(mat, mat3)

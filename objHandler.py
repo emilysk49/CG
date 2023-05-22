@@ -54,12 +54,6 @@ class ObjHandler:
                     self.texcoords.append(texcoord)
                 elif line.startswith("# "):
                     continue
-                #elif line.startswith("f "):
-                #    face = []
-                #    for vertex_desc in line.split()[1:]:
-                #        indices = [int(index) if index else 0 for index in vertex_desc.split("/")]
-                #        face.append(indices)
-                #    self.faces.append(face)
                 elif line.startswith("mtllib "):
                     self.matlib = MTLReader(line.split()[1])
                 elif line.startswith("o ") or line.startswith("g "):
@@ -98,12 +92,10 @@ class ObjHandler:
                     self.objects.append(ponto)
         
                 elif line.startswith("l ") or line.startswith("f "):    #depois face terá sua propria implementação com preenchimento 
-                    #v_index = list(map(int, line.split()[1:]))
-                    ################################################### MUDEI #################################################################
                     v_index = list(line.split()[1:])
 
                     index = []
-                    if "/" in str(v_index[0]):                              #caso seja f v/vt/vn
+                    if "/" in str(v_index[0]):                              #caso seja f v/vt/vn v/vt/vn v/vt/vn
                         pontos = []
                         for vertexs in v_index:
                             v, *_ = vertexs.split('/')                  #pega apenas v
@@ -114,7 +106,6 @@ class ObjHandler:
                             obj_name = f"POLYGONDEFAULT{polygon}" 
                         poligono = Polygon(obj_name, pontos)
                         polygon += 1
-                        #obj_name = ""
                         if (color != ""):
                             r = int(self.matlib.colors[color][0] * 255)
                             g = int(self.matlib.colors[color][1] * 255)
@@ -122,7 +113,7 @@ class ObjHandler:
                             color = ""
                             poligono.cor = self.rgb_to_hex(r,g,b)
                         self.objects.append(poligono)
-                    #####################################################################################################################
+
                     elif len(v_index) > 2:                                #caso seja poligono 
                         #poligono
                         v_index = list(map(int, v_index))
@@ -137,7 +128,6 @@ class ObjHandler:
                             obj_name = f"POLYGONDEFAULT{polygon}" 
                         poligono = Polygon(obj_name, pontos)
                         polygon += 1
-                        #obj_name = ""
                         if (color != ""):
                             r = int(self.matlib.colors[color][0] * 255)
                             g = int(self.matlib.colors[color][1] * 255)
@@ -145,6 +135,7 @@ class ObjHandler:
                             color = ""
                             poligono.cor = self.rgb_to_hex(r,g,b)
                         self.objects.append(poligono)
+
                     else:
                         #linha
                         v_index = list(map(int, v_index))
@@ -158,7 +149,6 @@ class ObjHandler:
                             obj_name = f"LINEDEFAULT{l}"
                         linha = Line(obj_name, line)
                         l += 1
-                        #obj_name = ""
                         if (color != ""):
                             r = int(self.matlib.colors[color][0] * 255)
                             g = int(self.matlib.colors[color][1] * 255)
@@ -166,14 +156,8 @@ class ObjHandler:
                             color = ""
                             linha.cor = self.rgb_to_hex(r,g,b)
                         self.objects.append(linha)
-                #elif line.startswith("g "):                                  #arame 
-                #    group_name = line.split()[1]
-                #    obj_name =""
                 
                 if (not line):
-                    #nomeobj = file_path.split("/")
-                    #nome = nomeobj[-1].split(".")                    
-                    #arame = Arame(nome[0], self.objects)
                     if self.objects != []:
                         if len(self.objects) == 1:                    #caso so tem um objeto guarda ele msm 
                             grupo.append(self.objects[0])
@@ -181,10 +165,6 @@ class ObjHandler:
                             arame = Arame(obj_name, self.objects)
                             grupo.append(arame)
                     break
-                
-                #print(self.objects)
-                #arame = Arame("GRUPO", self.objects)
-            #return self.objects
             return grupo
 
 
@@ -214,6 +194,7 @@ class ObjHandler:
                     for i in range(len(coord)):
                         num = (i*-1)-1
                         f.write(f"{num} ")
+                    f.write(f"-1 {-len(coord)-1}")
                     f.write("\n")
                 elif (tipo == 5):                               #curva
                     for i in range(len(coord),1,-1):
